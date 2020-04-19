@@ -1,5 +1,7 @@
 # FLoops: `foldl` for humans
 
+[![GitHub Actions](https://github.com/tkf/FLoops.jl/workflows/Run%20tests/badge.svg)](https://github.com/tkf/FLoops.jl/actions?query=workflow%3A%22Run+tests%22)
+
 [FLoops.jl](https://github.com/tkf/FLoops.jl) provides a macro
 `@floop`.  It can be used to generate a fast generic iteration over
 complex collections.
