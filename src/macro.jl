@@ -21,8 +21,8 @@ When there is no induction variables, `begin ... end` can be omitted:
 See the module docstring of [`Floops`](@ref) for examples.
 """
 macro floop(ex)
-    # TODO: support SIMD
-    esc(floop(macroexpand(__module__, ex)))
+    ex, simd = remove_at_simd(__module__, ex)
+    esc(floop(macroexpand(__module__, ex), simd))
 end
 
 struct Return{T}
@@ -36,7 +36,7 @@ end
 Goto{label}(acc::T) where {label,T} = Goto{label,T}(acc)
 gotoexpr(label::Symbol) = :($Goto{$(QuoteNode(label))})
 
-function floop(ex)
+function floop(ex, simd)
     pre = post = Union{}[]
     ansvar = :_
     if isexpr(ex, :for)
@@ -65,10 +65,10 @@ function floop(ex)
         Expr(:block, loop_axes...) => begin
             loop_vars, coll = transform_multi_loop(loop_axes)
             rf_arg = :(($(reverse(loop_vars)...),))
-            asfoldl(rf_arg, coll, body, init_vars, external_labels)
+            asfoldl(rf_arg, coll, body, init_vars, external_labels, simd)
         end
         Expr(:(=), rf_arg, coll) => begin
-            asfoldl(rf_arg, coll, body, init_vars, external_labels)
+            asfoldl(rf_arg, coll, body, init_vars, external_labels, simd)
         end
     end
     return Expr(:block, pre..., :($ansvar = $foldlex), post...)
@@ -91,7 +91,8 @@ find_first_for_loop(args) =
         end
     end
 
-function asfoldl(rf_arg, coll, body, state_vars, external_labels)
+function asfoldl(rf_arg, coll, body, state_vars, external_labels, simd)
+    @assert simd in (false, true, :ivdep)
     @gensym step acc xf foldable
     # state_vars = extract_state_vars(body)
     pack_state = :((; $([Expr(:kw, v, v) for v in state_vars]...)))
@@ -121,7 +122,7 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels)
             return $pack_state
         end
         $xf, $foldable = $extract_transducer($coll)
-        $acc = $foldl($step, $xf, $foldable; init = $pack_state)
+        $acc = $foldl($step, $xf, $foldable; init = $pack_state, simd = $(Val(simd)))
         $acc isa $Return && return $acc.value
         $(gotos...)
         $(unpack_state...)
@@ -280,4 +281,55 @@ function transform_multi_loop(loop_axes)
     else
         return (loop_vars, :($Iterators.product($(reverse(loop_collections)...))))
     end
+end
+
+function resolvesymbol(m, e)
+    @match e begin
+        Expr(:., a, QuoteNode(b::Symbol)) => begin
+            x = resolvesymbol(m, a)
+            x isa Module ? getfield(x, b) : nothing
+        end
+        (a::Symbol) => getfield(m, a)
+        _ => nothing
+    end
+end
+
+"""
+    remove_at_simd(__module__, ex) -> (ex′, simd)
+
+Return a tuple with following items:
+
+* `ex′`: `ex` without the first top-level macrocall to `Base.@simd` removed.
+* `simd`: `true` if `@simd for ... end` is found. `:ivdep` if `@simd
+  ivdep for ... end` is found.  `false` otherwise.
+
+Macros that happened to have the name `@simd` but not identical to
+`Base.@simd` are ignored.
+"""
+function remove_at_simd(__module__, ex)
+    ans = @match ex begin
+        Expr(:macrocall, mcr, ::LineNumberNode, options..., loop) => begin
+            if (
+                isexpr(loop, :for) &&
+                resolvesymbol(__module__, mcr) === getfield(Base, Symbol("@simd"))
+            )
+                if options == [:ivdep]
+                    return loop, :ivdep
+                elseif options == []
+                    return loop, true
+                end
+            end
+        end
+        Expr(:block, args...) => begin
+            for (i, x) in enumerate(args)
+                y, simd = remove_at_simd(__module__, x)
+                if simd !== false
+                    return Expr(:block, args[1:i-1]..., y, args[i+1:end]...), simd
+                end
+            end
+        end
+        _ => nothing
+    end
+    ans === nothing || return ans
+    return ex, false
 end
