@@ -62,6 +62,7 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels)
     # state_vars = extract_state_vars(body)
     pack_state = :((; $([Expr(:kw, v, v) for v in state_vars]...)))
     unpack_state = [:($v = $acc.$v) for v in state_vars]
+    state_declarations = [:(local $v) for v in state_vars]
     gotos = map(external_labels) do label
         quote
             if $acc isa $(gotoexpr(label))
@@ -79,7 +80,8 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels)
         nested_for = false,
     )
     quote
-        function $step($acc, $rf_arg)
+        @inline function $step($acc, $rf_arg)
+            $(state_declarations...)
             $(unpack_state...)
             $(as_rf_body(body, info))
             return $pack_state
