@@ -1,3 +1,4 @@
+using Documenter: doctest
 using FLoops
 using Test
 
@@ -175,4 +176,8 @@ end
     end
     @label a
     @test s == 6
+end
+
+@testset "doctest" begin
+    doctest(FLoops, manual = false)
 end
