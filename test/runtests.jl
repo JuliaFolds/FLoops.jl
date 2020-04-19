@@ -16,6 +16,20 @@ using Test
     @test p == prod(xs)
 end
 
+@testset "complex assignments" begin
+    xs = 1:10
+    @floop begin
+        s = 0
+        p = s + 1
+        for x in xs
+            s += x
+            p *= x
+        end
+    end
+    @test s == sum(xs)
+    @test p == prod(xs)
+end
+
 @testset "no states" begin
     xs = 1:10
     ys = similar(xs)

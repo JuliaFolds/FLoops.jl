@@ -200,8 +200,7 @@ function assigned_vars(ex::Expr)
         Expr(:tuple, lhs1..., Expr(:(=), lhs2, rhs)) =>
             vcat(mapfoldl(vars_in, vcat, lhs1), vars_in(lhs2), assigned_vars(rhs))
         # Is it better to be permissive here?
-        # _ => Symbol[]
-        Expr(:inbounds, _) => Symbol[]
+        _ => Symbol[]
     end
 end
 
