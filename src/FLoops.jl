@@ -7,11 +7,11 @@ using MLStyle: @match
 using Setfield: @set
 using Transducers:
     @return_if_reduced,
-    IdentityTransducer,
     MapCat,
     Reduction,
     Transducers,
     complete,
+    extract_transducer,
     foldl_nocomplete,
     next,
     reduced

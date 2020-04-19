@@ -58,7 +58,7 @@ function floop(ex)
 end
 
 function asfoldl(rf_arg, coll, body, state_vars, external_labels)
-    @gensym step acc
+    @gensym step acc xf foldable
     # state_vars = extract_state_vars(body)
     pack_state = :((; $([Expr(:kw, v, v) for v in state_vars]...)))
     unpack_state = [:($v = $acc.$v) for v in state_vars]
@@ -86,13 +86,17 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels)
             $(as_rf_body(body, info))
             return $pack_state
         end
-        $acc = $foldl($step, $IdentityTransducer(), $coll; init = $pack_state)
+        $xf, $foldable = $extract_transducer($coll)
+        $acc = $foldl($step, $xf, $foldable; init = $pack_state)
         $acc isa $Return && return $acc.value
         $(gotos...)
         $(unpack_state...)
         nothing
     end
 end
+# For now, using (private interface) `extract_transducer` as done in:
+# https://github.com/tkf/ThreadsX.jl/pull/106.  But this should be
+# done automatically in Transducers.jl.
 
 function as_rf_body(body, info)
     @match body begin
