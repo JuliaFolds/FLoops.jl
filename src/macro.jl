@@ -37,25 +37,59 @@ Goto{label}(acc::T) where {label,T} = Goto{label,T}(acc)
 gotoexpr(label::Symbol) = :($Goto{$(QuoteNode(label))})
 
 function floop(ex)
-    external_labels = setdiff(gotos_in(ex), labels_in(ex))
-    @match ex begin
-        Expr(:for, _, _) => floop(Expr(:block, ex))
-        Expr(:block, pre..., Expr(:for, loops, body)) => begin
-            init_vars = mapfoldl(assigned_vars, append!, pre; init = Symbol[])
-            foldlex = @match loops begin
-                Expr(:block, loop_axes...) => begin
-                    loop_vars, coll = transform_multi_loop(loop_axes)
-                    rf_arg = :(($(reverse(loop_vars)...),))
-                    asfoldl(rf_arg, coll, body, init_vars, external_labels)
-                end
-                Expr(:(=), rf_arg, coll) => begin
-                    asfoldl(rf_arg, coll, body, init_vars, external_labels)
-                end
+    pre = post = Union{}[]
+    ansvar = :_
+    if isexpr(ex, :for)
+        loops, body = _for_loop(ex)
+    elseif isexpr(ex, :block)
+        args = flattenblockargs(ex)
+        i, ansvar, loops, body =
+            find_first_for_loop(args) |> ifnothing() do
+                throw(ArgumentError("Unsupported expression:\n$ex"))
             end
-            Expr(:block, pre..., foldlex)
+        pre = args[1:i-1]
+        post = args[i+1:end]
+        if find_first_for_loop(post) !== nothing
+            throw(ArgumentError("Multiple top-level `for` loop found in:\n$ex"))
+        end
+    else
+        throw(ArgumentError("Unsupported expression:\n$ex"))
+    end
+    if ansvar !== :_
+        post = vcat(post, ansvar)
+    end
+
+    external_labels = setdiff(gotos_in(ex), labels_in(ex))
+    init_vars = mapcat(assigned_vars, pre)
+    foldlex = @match loops begin
+        Expr(:block, loop_axes...) => begin
+            loop_vars, coll = transform_multi_loop(loop_axes)
+            rf_arg = :(($(reverse(loop_vars)...),))
+            asfoldl(rf_arg, coll, body, init_vars, external_labels)
+        end
+        Expr(:(=), rf_arg, coll) => begin
+            asfoldl(rf_arg, coll, body, init_vars, external_labels)
         end
     end
+    return Expr(:block, pre..., :($ansvar = $foldlex), post...)
 end
+
+function _for_loop(ex)
+    if isexpr(ex, :for) && length(ex.args) == 2
+        return ex.args
+    end
+    throw(ArgumentError("Malformed `for` block:\n$ex"))
+end
+
+find_first_for_loop(args) =
+    firstsomething(enumerate(args)) do (i, x)
+        @match x begin
+            Expr(:for, loops, body) => return (i, :_, loops, body)
+            Expr(:local, Expr(:(=), ansvar, Expr(:for, loops, body))) =>
+                return (i, ansvar, loops, body)
+            _ => nothing
+        end
+    end
 
 function asfoldl(rf_arg, coll, body, state_vars, external_labels)
     @gensym step acc xf foldable
@@ -110,10 +144,8 @@ function as_rf_body(body, info)
         Expr(:for, nloop, nbody) =>
             Expr(:for, nbody, as_rf_body(nbody, @set info.nested_for = true))
 
-        Expr(:continue) =>
-            info.nested_for ? body : :(return $(info.pack_state) $(info.pack_state))
-        Expr(:break) => info.nested_for ? body :
-            :(return $reduced($(info.pack_state) $(info.pack_state)))
+        Expr(:continue) => info.nested_for ? body : :(return $(info.pack_state))
+        Expr(:break) => info.nested_for ? body : :(return $reduced($(info.pack_state)))
         Expr(:return) => :(return $reduced($Return(nothing)))
         Expr(:return, value) => :(return $reduced($Return($value)))
         Expr(:symbolicgoto, label) => if label in info.external_labels
@@ -136,7 +168,7 @@ function as_rf_body(body, info)
             frozen_vars = intersect(info.state_vars, let_vars)
             gensym_vars = map(gensym, frozen_vars)
             d = Dict(zip(frozen_vars, gensym_vars))
-            pack_state = @match info.pack_state begin
+            pack_state_args = @match info.pack_state begin
                 :((; $(args...))) => begin
                     map(args) do x
                         @match x begin
@@ -146,12 +178,12 @@ function as_rf_body(body, info)
                 end
             end
             info = @set info.state_vars = setdiff(info.state_vars, frozen_vars)
-            info = @set info.pack_state = pack_state
+            info = @set info.pack_state = :((; $(pack_state_args...)))
             all_bindings = map(gensym_vars, frozen_vars) do g, f
                 :($g = $f)
             end
             append!(all_bindings, let_bindings)
-            Expr(:let, all_bindings, as_rf_body(let_body, info))
+            Expr(:let, Expr(:block, all_bindings...), as_rf_body(let_body, info))
         end
 
         Expr(head, args...) => Expr(head, [as_rf_body(a, info) for a in args]...)
@@ -169,6 +201,7 @@ function assigned_vars(ex::Expr)
             vcat(mapfoldl(vars_in, vcat, lhs1), vars_in(lhs2), assigned_vars(rhs))
         # Is it better to be permissive here?
         # _ => Symbol[]
+        Expr(:inbounds, _) => Symbol[]
     end
 end
 
@@ -201,7 +234,7 @@ gotos_in(_) = Symbol[]
 function gotos_in(ex::Expr)
     @match ex begin
         Expr(:symbolicgoto, label) => [label]
-        Expr(_, args...) => mapreduce(gotos_in, vcat, args)
+        Expr(_, args...) => mapcat(gotos_in, args)
     end
 end
 
@@ -209,7 +242,7 @@ labels_in(_) = Symbol[]
 function labels_in(ex::Expr)
     @match ex begin
         Expr(:symboliclabel, label) => [label]
-        Expr(_, args...) => mapreduce(labels_in, vcat, args)
+        Expr(_, args...) => mapcat(labels_in, args)
     end
 end
 
