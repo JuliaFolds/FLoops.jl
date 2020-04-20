@@ -1,3 +1,5 @@
+module TestCore
+
 using FLoops
 using Test
 
@@ -190,3 +192,5 @@ end
     @label a
     @test s == 6
 end
+
+end  # module
