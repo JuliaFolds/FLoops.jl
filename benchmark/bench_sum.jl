@@ -16,7 +16,7 @@ end
 function sum_floop(xs)
     @floop begin
         acc = 0.0
-        for x in xs
+        @simd for x in xs
             acc += x
         end
     end
@@ -34,7 +34,7 @@ dataset = [
 ]
 
 for (label, xs) in dataset
-    @assert sum_for(xs) == sum_floop(xs)
+    @assert sum_for(xs) ≈ sum_floop(xs)
     s1 = SUITE[:label=>label] = BenchmarkGroup()
     s1[:impl=>"for"] = @benchmarkable sum_for($xs)
     s1[:impl=>"floop"] = @benchmarkable sum_floop($xs)
