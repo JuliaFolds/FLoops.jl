@@ -24,7 +24,7 @@ julia> @floop begin
 ```
 
 When accumulating into pre-defined variables, simply list them between
-`begin` and `for`.  `@foldl` also works with multiple accumulators.
+`begin` and `for`.  `@floop` also works with multiple accumulators.
 
 ```julia
 julia> @floop begin
