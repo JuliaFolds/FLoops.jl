@@ -36,8 +36,8 @@ dataset = [
 for (label, xs) in dataset
     @assert sum_for(xs) == sum_floop(xs)
     s1 = SUITE[:label=>label] = BenchmarkGroup()
-    s1["for"] = @benchmarkable sum_for($xs)
-    s1["floop"] = @benchmarkable sum_floop($xs)
+    s1[:impl=>"for"] = @benchmarkable sum_for($xs)
+    s1[:impl=>"floop"] = @benchmarkable sum_floop($xs)
 end
 
 end  # module
