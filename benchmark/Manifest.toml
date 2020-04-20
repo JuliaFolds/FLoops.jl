@@ -5,6 +5,12 @@ git-tree-sha1 = "59c256cf71c3982484ae4486ee86a3d7da891dea"
 uuid = "dce04be8-c92d-5529-be00-80e4d2c0e197"
 version = "2.0.0"
 
+[[ArrayLayouts]]
+deps = ["FillArrays", "LinearAlgebra"]
+git-tree-sha1 = "f8904599065b57f51715faf6278126f853aef6fc"
+uuid = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
+version = "0.2.4"
+
 [[BangBang]]
 deps = ["Compat", "ConstructionBase", "Future", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables", "ZygoteRules"]
 git-tree-sha1 = "c9ad7258a3fe28cec503cda05dcd59afc9d2b4c3"
@@ -19,6 +25,12 @@ deps = ["JSON", "Logging", "Printf", "Statistics", "UUIDs"]
 git-tree-sha1 = "9e62e66db34540a0c919d72172cc2f642ac71260"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 version = "0.5.0"
+
+[[BlockArrays]]
+deps = ["ArrayLayouts", "LinearAlgebra"]
+git-tree-sha1 = "eea334ad60f4257519357b1f217e7e2cfe35eae0"
+uuid = "8e7c35d0-a365-5155-bbbb-fb81a777f24e"
+version = "0.12.3"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
@@ -64,6 +76,12 @@ deps = ["JuliaVariables", "MLStyle", "Setfield", "Transducers"]
 path = ".."
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
 version = "0.1.0"
+
+[[FillArrays]]
+deps = ["LinearAlgebra", "Random", "SparseArrays"]
+git-tree-sha1 = "51cc2f9bc4eb9c6c0e81ec2f779d1085583cc956"
+uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
+version = "0.8.7"
 
 [[Future]]
 deps = ["Random"]
