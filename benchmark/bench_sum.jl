@@ -1,7 +1,9 @@
 module BenchSum
 
 using BenchmarkTools
+using BlockArrays: mortar
 using FLoops
+using FillArrays: Zeros
 
 function sum_for(xs)
     acc = 0.0
@@ -27,7 +29,8 @@ floats = randn(1000)
 dataset = [
     "Vector" => floats,
     "filter" => Iterators.filter(!ismissing, ifelse.(floats .> 2, missing, floats)),
-    "flatten" => Iterators.flatten((floats, (1, 2), 3:4, 5:0.2:6)),
+    "flatten" => Iterators.flatten((floats, (1, 2), 3:4, 5:0.2:6, Zeros(1000))),
+    "BlockVector" => mortar([floats, floats]),
 ]
 
 for (label, xs) in dataset
