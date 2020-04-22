@@ -1,4 +1,4 @@
-# FLoops: `foldl` for humans
+# FLoops: `foldl` for humans™
 
 [![GitHub Actions](https://github.com/tkf/FLoops.jl/workflows/Run%20tests/badge.svg)](https://github.com/tkf/FLoops.jl/actions?query=workflow%3A%22Run+tests%22)
 
