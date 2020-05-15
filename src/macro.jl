@@ -95,14 +95,14 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels, simd)
     @assert simd in (false, true, :ivdep)
     @gensym step acc xf foldable
     # state_vars = extract_state_vars(body)
-    pack_state = :((; $([Expr(:kw, v, v) for v in state_vars]...)))
-    unpack_state = [:($v = $acc.$v) for v in state_vars]
+    pack_state = :(($(state_vars...),))
+    unpack_state = :(($(state_vars...),) = $acc)
     state_declarations = [:(local $v) for v in state_vars]
     gotos = map(external_labels) do label
         quote
             if $acc isa $(gotoexpr(label))
                 let $acc = $acc.acc
-                    $(unpack_state...)
+                    $unpack_state
                 end
                 $Base.@goto $label
             end
@@ -117,7 +117,7 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels, simd)
     quote
         @inline function $step($acc, $rf_arg)
             $(state_declarations...)
-            $(unpack_state...)
+            $unpack_state
             $(as_rf_body(body, info))
             return $pack_state
         end
@@ -125,7 +125,7 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels, simd)
         $acc = $foldl($step, $xf, $foldable; init = $pack_state, simd = $(Val(simd)))
         $acc isa $Return && return $acc.value
         $(gotos...)
-        $(unpack_state...)
+        $unpack_state
         nothing
     end
 end
@@ -170,16 +170,12 @@ function as_rf_body(body, info)
             gensym_vars = map(gensym, frozen_vars)
             d = Dict(zip(frozen_vars, gensym_vars))
             pack_state_args = @match info.pack_state begin
-                :((; $(args...))) => begin
-                    map(args) do x
-                        @match x begin
-                            Expr(:kw, k, v) => Expr(:kw, k, get(d, k, v))
-                        end
-                    end
+                :(($(args...),)) => begin
+                    map(a -> get(d, a, a), args)
                 end
             end
             info = @set info.state_vars = setdiff(info.state_vars, frozen_vars)
-            info = @set info.pack_state = :((; $(pack_state_args...)))
+            info = @set info.pack_state = :(($(pack_state_args...),))
             all_bindings = map(gensym_vars, frozen_vars) do g, f
                 :($g = $f)
             end
