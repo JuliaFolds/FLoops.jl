@@ -7,9 +7,9 @@ version = "2.0.0"
 
 [[BangBang]]
 deps = ["Compat", "ConstructionBase", "Future", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables", "ZygoteRules"]
-git-tree-sha1 = "c9ad7258a3fe28cec503cda05dcd59afc9d2b4c3"
+git-tree-sha1 = "aa75b2fcd63ae0f5272456afad98a1c228586e40"
 uuid = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
-version = "0.3.19"
+version = "0.3.28"
 
 [[Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
@@ -19,6 +19,11 @@ deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", 
 git-tree-sha1 = "0198d18b28c093bef39872a22f1a897218a925f5"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
 version = "3.8.0"
+
+[[CompositionsBase]]
+git-tree-sha1 = "f3955eb38944e5dd0fabf8ca1e267d94941d34a5"
+uuid = "a33af91c-f02d-484b-be07-31d278c5ca2b"
+version = "0.1.0"
 
 [[ConstructionBase]]
 git-tree-sha1 = "a2a6a5fea4d6f730ec4c18a76d27ec10e8ec1c50"
@@ -76,9 +81,10 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[InitialValues]]
-git-tree-sha1 = "ef18588a15dcd6aff37a09108d7b3754093d73be"
+deps = ["Pkg"]
+git-tree-sha1 = "e8dbe594d2dabcf66d7cd04a315553b067da5e04"
 uuid = "22cec73e-a1b8-11e9-2c92-598750a2cf9c"
-version = "0.2.2"
+version = "0.2.8"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
@@ -202,9 +208,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SplittablesBase]]
 deps = ["Setfield", "Test"]
-git-tree-sha1 = "824da53be38fd36c33c25ffc092fd5aacfe7a1e2"
+git-tree-sha1 = "9a5aa2eb673771ced22bba49e8a19c1d41faab1b"
 uuid = "171d559e-b47b-412a-8079-5efa626c420e"
-version = "0.1.1"
+version = "0.1.9"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -227,10 +233,10 @@ deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Transducers]]
-deps = ["ArgCheck", "BangBang", "Distributed", "InitialValues", "Logging", "Markdown", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "e206161819ce8ffbf4e775530d5c87a33de0b185"
+deps = ["ArgCheck", "BangBang", "CompositionsBase", "Distributed", "InitialValues", "Logging", "Markdown", "Requires", "Setfield", "SplittablesBase", "Tables"]
+git-tree-sha1 = "329e69f3104057ae0aaab823c447bd7d5aae1d8b"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.25"
+version = "0.4.39"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
