@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        # Edit ../../.mergify.yml when adding a new version.
         julia-version: ['1.4', 'nightly']
       fail-fast: false
     name: Test Julia ${{ matrix.julia-version }}
