@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - actions/trigger/CompatHelper
+  workflow_dispatch:
 
 jobs:
   CompatHelper:
