@@ -32,6 +32,10 @@ else
     const solve! = JuliaVariables.solve
 end
 
+if !@isdefined isnothing
+    using Compat: isnothing
+end
+
 include("utils.jl")
 include("triangular.jl")
 include("macro.jl")

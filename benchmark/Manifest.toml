@@ -77,7 +77,7 @@ deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[FLoops]]
-deps = ["JuliaVariables", "MLStyle", "Setfield", "Transducers"]
+deps = ["Compat", "JuliaVariables", "MLStyle", "Setfield", "Transducers"]
 path = ".."
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
 version = "0.1.0"
