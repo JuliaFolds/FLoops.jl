@@ -1,8 +1,8 @@
 # FLoops: `foldl` for humans™
 
-[![GitHub Actions](https://github.com/tkf/FLoops.jl/workflows/Run%20tests/badge.svg)](https://github.com/tkf/FLoops.jl/actions?query=workflow%3A%22Run+tests%22)
+[![GitHub Actions](https://github.com/JuliaFolds/FLoops.jl/workflows/Run%20tests/badge.svg)](https://github.com/JuliaFolds/FLoops.jl/actions?query=workflow%3A%22Run+tests%22)
 
-[FLoops.jl](https://github.com/tkf/FLoops.jl) provides a macro
+[FLoops.jl](https://github.com/JuliaFolds/FLoops.jl) provides a macro
 `@floop`.  It can be used to generate a fast generic iteration over
 complex collections.
 
@@ -58,7 +58,7 @@ x = 3
 
 `@floop` works by converting the native Julia `for` loop syntax to
 `foldl` defined by
-[Transducers.jl](https://github.com/tkf/Transducers.jl).  Unlike
+[Transducers.jl](https://github.com/JuliaFolds/Transducers.jl).  Unlike
 `foldl` defined in `Base`, `foldl` defined by Transducers.jl is
 [powerful enough to cover the `for` loop semantics and more](https://tkf.github.io/Transducers.jl/dev/manual/#Base.foreach).
 
