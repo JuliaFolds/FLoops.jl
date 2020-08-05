@@ -50,6 +50,11 @@ version = "1.0.0"
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
+[[DefineSingletons]]
+git-tree-sha1 = "1a356f194281dff9ef1119faa9125a0d4e210729"
+uuid = "244e2a9f-e319-4986-a169-4d1fe445cd52"
+version = "0.1.0"
+
 [[DelimitedFiles]]
 deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
@@ -134,6 +139,12 @@ version = "0.5.5"
 [[Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+
+[[MicroCollections]]
+deps = ["BangBang", "Setfield"]
+git-tree-sha1 = "e991b6a9d38091c4a0d7cd051fcb57c05f98ac03"
+uuid = "128add7d-3638-4c79-886c-908ea0c25c34"
+version = "0.1.0"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
@@ -233,10 +244,12 @@ deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Transducers]]
-deps = ["ArgCheck", "BangBang", "CompositionsBase", "Distributed", "InitialValues", "Logging", "Markdown", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "329e69f3104057ae0aaab823c447bd7d5aae1d8b"
+deps = ["ArgCheck", "BangBang", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "Requires", "Setfield", "SplittablesBase", "Tables"]
+git-tree-sha1 = "3b96b22b8a5271ad3854135b1def0c3ae1b7e469"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaFolds/Transducers.jl.git"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.39"
+version = "0.4.44"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]

@@ -6,7 +6,7 @@ module FLoops
     replace(read(path, String), r"^```julia"m => "```jldoctest README")
 end FLoops
 
-export @floop
+export @floop, @reduce, DistributedEx, SequentialEx, ThreadedEx
 
 using Base.Meta: isexpr
 using JuliaVariables: JuliaVariables, Var, simplify_ex
@@ -14,17 +14,23 @@ using MLStyle: @match
 using Setfield: @set
 using Transducers:
     @return_if_reduced,
+    Cat,
     Map,
     MapCat,
+    OnInit,
     ReduceIf,
     Reduction,
     Transducers,
     complete,
     extract_transducer,
     foldl_nocomplete,
+    foldxd,
+    foldxl,
+    foldxt,
     next,
     reduced,
-    right
+    right,
+    whencombine
 
 if isdefined(JuliaVariables, :solve!)
     using JuliaVariables: solve!
@@ -37,7 +43,7 @@ if !@isdefined isnothing
 end
 
 include("utils.jl")
-include("triangular.jl")
 include("macro.jl")
+include("reduce.jl")
 
 end # module

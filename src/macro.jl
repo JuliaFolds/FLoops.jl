@@ -18,11 +18,36 @@ When there is no induction variables, `begin ... end` can be omitted:
         ...
     end
 
+Use [`@reduce`](@ref) for parallel execution:
+
+    @floop for x in xs, ...
+        ...
+        @reduce ...
+    end
+
+`@floop` with `@reduce` can take an `executor` argument (which should
+be an instance of one of `SequentialEx`, `ThreadedEx` and
+`DistributedEx`):
+
+    @floop executor for x in xs, ...
+        ...
+        @reduce ...
+    end
+
 See the module docstring of [`Floops`](@ref) for examples.
 """
 macro floop(ex)
     ex, simd = remove_at_simd(__module__, ex)
-    esc(floop(macroexpand(__module__, ex), simd))
+    exx = macroexpand(__module__, ex)
+    has_reduce(exx) && return esc(floop_parallel(exx, simd))
+    esc(floop(exx, simd))
+end
+
+macro floop(executor, ex)
+    ex, simd = remove_at_simd(__module__, ex)
+    exx = macroexpand(__module__, ex)
+    has_reduce(exx) && return esc(floop_parallel(exx, simd, executor))
+    throw(ArgumentError("`@floop` with `executor` requires `@reduce`"))
 end
 
 struct Return{T}
@@ -59,16 +84,14 @@ function floop(ex, simd)
         post = vcat(post, ansvar)
     end
 
-    external_labels = setdiff(gotos_in(ex), labels_in(ex))
     init_vars = mapcat(assigned_vars, pre)
     foldlex = @match loops begin
         Expr(:block, loop_axes...) => begin
-            loop_vars, coll = transform_multi_loop(loop_axes)
-            rf_arg = :(($(reverse(loop_vars)...),))
-            asfoldl(rf_arg, coll, body, init_vars, external_labels, simd)
+            rf_arg, coll = transform_multi_loop(loop_axes)
+            asfoldl(rf_arg, coll, body, init_vars, simd)
         end
         Expr(:(=), rf_arg, coll) => begin
-            asfoldl(rf_arg, coll, body, init_vars, external_labels, simd)
+            asfoldl(rf_arg, coll, body, init_vars, simd)
         end
     end
     return Expr(:block, pre..., :($ansvar = $foldlex), post...)
@@ -91,13 +114,7 @@ find_first_for_loop(args) =
         end
     end
 
-function asfoldl(rf_arg, coll, body, state_vars, external_labels, simd)
-    @assert simd in (false, true, :ivdep)
-    @gensym step acc xf foldable
-    # state_vars = extract_state_vars(body)
-    pack_state = :(($(state_vars...),))
-    unpack_state = :(($(state_vars...),) = $acc)
-    state_declarations = [:(local $v) for v in state_vars]
+function gotos_for(external_labels::Vector{Symbol}, unpack_state::Expr, acc::Symbol)
     gotos = map(external_labels) do label
         quote
             if $acc isa $(gotoexpr(label))
@@ -108,17 +125,22 @@ function asfoldl(rf_arg, coll, body, state_vars, external_labels, simd)
             end
         end
     end
-    info = (
-        state_vars = state_vars,
-        pack_state = pack_state,
-        external_labels = external_labels,
-        nested_for = false,
-    )
+    return gotos
+end
+
+function asfoldl(rf_arg, coll, body0, state_vars, simd)
+    @assert simd in (false, true, :ivdep)
+    body, info = transform_loop_body(body0, state_vars)
+    @gensym step acc xf foldable
+    pack_state = info.pack_state
+    unpack_state = :(($(state_vars...),) = $acc)
+    gotos = gotos_for(info.external_labels, unpack_state, acc)
+    state_declarations = [:(local $v) for v in state_vars]
     quote
         @inline function $step($acc, $rf_arg)
             $(state_declarations...)
             $unpack_state
-            $(as_rf_body(body, info))
+            $body
             return $pack_state
         end
         $xf, $foldable = $extract_transducer($coll)
@@ -133,14 +155,22 @@ end
 # https://github.com/tkf/ThreadsX.jl/pull/106.  But this should be
 # done automatically in Transducers.jl.
 
-function as_rf_body(body, info)
-    @match body begin
-        # Stop recursing into function definition
-        Expr(:function, _...) => body
-        Expr(:(=), Expr(:call, _...), _) => body
-        Expr(:(=), Expr(:where, _...), _) => body
-        Expr(:do, _...) => body
+function transform_loop_body(body, state_vars)
+    external_labels::Vector{Symbol} = setdiff(gotos_in(body), labels_in(body))
+    # state_vars = extract_state_vars(body)
+    pack_state = :(($(state_vars...),))
+    info = (
+        state_vars = state_vars,
+        pack_state = pack_state,
+        external_labels = external_labels,
+        nested_for = false,
+    )
+    return as_rf_body(body, info), info
+end
 
+function as_rf_body(body, info)
+    is_function(body) && return body
+    @match body begin
         # Do not transform `break` in inside other `for` loops:
         Expr(:for, nloop, nbody) =>
             Expr(:for, nbody, as_rf_body(nbody, @set info.nested_for = true))
@@ -201,7 +231,7 @@ function assigned_vars(ex::Expr)
     end
 end
 
-vars_in(x::Symbol) = x
+vars_in(x::Symbol) = [x]
 function vars_in(ex)
     @match ex begin
         Expr(:tuple, vars...) => vars
@@ -227,7 +257,7 @@ end
 # end
 
 gotos_in(_) = Symbol[]
-function gotos_in(ex::Expr)
+function gotos_in(ex::Expr)::Vector{Symbol}
     @match ex begin
         Expr(:symbolicgoto, label) => [label]
         Expr(_, args...) => mapcat(gotos_in, args)
@@ -235,7 +265,7 @@ function gotos_in(ex::Expr)
 end
 
 labels_in(_) = Symbol[]
-function labels_in(ex::Expr)
+function labels_in(ex::Expr)::Vector{Symbol}
     @match ex begin
         Expr(:symboliclabel, label) => [label]
         Expr(_, args...) => mapcat(labels_in, args)
@@ -255,29 +285,54 @@ function _global_rhs(ex::Expr)
 end
 
 function transform_multi_loop(loop_axes)
-    loop_vars = Symbol[]
+    all_loop_vars = Symbol[]
+    loop_vars = []
     loop_collections = []
     is_triangular = false
     for ex in loop_axes
         @match ex begin
             Expr(:(=), var, axis) => begin
-                is_triangular |= !isempty(intersect(loop_vars, unbound_rhs(axis)))
+                is_triangular |= !isempty(intersect(all_loop_vars, unbound_rhs(axis)))
+                append!(all_loop_vars, vars_in(var))
                 push!(loop_vars, var)
                 push!(loop_collections, axis)
             end
         end
     end
+    rf_arg = :(($(reverse(loop_vars)...),))
     if is_triangular
-        axis_constructors = Any[]
-        for (i, axis) in enumerate(loop_collections)
-            vars = loop_vars[1:i-1]
-            push!(axis_constructors, :(($(vars...),) -> $axis))
+        coll = foldr(
+            zip(loop_vars, loop_collections);
+            init = :($(reverse(loop_vars)...),),
+        ) do (v, axis), coll
+            f = gensym("loop_axis_$v")
+            Expr(:call, |>, axis, quote
+                $f($v) = $coll  # should it be inlined?
+                $Map($f)
+            end)
         end
-        return (loop_vars, :($TriangularIterator(($(axis_constructors...),))))
+        for _ in 2:length(loop_collections)
+            coll = Expr(:call, |>, coll, :($Cat()))
+        end
+        return (rf_arg, coll)
     else
-        return (loop_vars, :($Iterators.product($(reverse(loop_collections)...))))
+        return (rf_arg, :($Iterators.product($(reverse(loop_collections)...))))
     end
 end
+#
+# Notes on triangular loops: For example, a `for` loop specification
+# `for x in xs, y in f(x), z in g(x, y)` is transformed to
+#
+#     xs |> Map() do x
+#         f(x) |> Map() do y
+#             g(x, y) |> Map() do z
+#                 (z, y, x)
+#             end
+#         end
+#     end |> Cat() |> Cat()
+#
+# `Cat`s are composed outside so that `foldxt` can (in principle)
+# rewrite the transducer to use `TCat` to parallelize inner loops.
 
 function resolvesymbol(m, e)
     @match e begin
