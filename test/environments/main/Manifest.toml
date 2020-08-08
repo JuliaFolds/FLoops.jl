@@ -32,7 +32,7 @@ version = "1.0.0"
 
 [[ContextVariablesX]]
 deps = ["Compat", "Logging", "UUIDs"]
-git-tree-sha1 = "089c2ab51f0ea7d9d8e1b645e0426bd6b9923fed"
+git-tree-sha1 = "f4b33f7da62cc7fb2421771baa466105b6cb002f"
 repo-rev = "master"
 repo-url = "https://github.com/tkf/ContextVariablesX.jl.git"
 uuid = "6add18c4-b38d-439d-96f6-d6bc489c04c5"
