@@ -45,5 +45,6 @@ end
 include("utils.jl")
 include("macro.jl")
 include("reduce.jl")
+include("checkboxes.jl")
 
 end # module
