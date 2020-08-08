@@ -1,5 +1,6 @@
 # FLoops: `fold` for humans™
 
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliafolds.github.io/FLoops.jl/dev)
 [![GitHub Actions](https://github.com/JuliaFolds/FLoops.jl/workflows/Run%20tests/badge.svg)](https://github.com/JuliaFolds/FLoops.jl/actions?query=workflow%3A%22Run+tests%22)
 
 [FLoops.jl](https://github.com/JuliaFolds/FLoops.jl) provides a macro
