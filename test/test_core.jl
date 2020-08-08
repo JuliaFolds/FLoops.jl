@@ -154,7 +154,7 @@ end
     @test actual == desired
 end
 
-@testset "triangular" begin
+@testset "triangular (2)" begin
     xs = 1:10
     actual = []
     @floop for x in xs, y in x:2:10
@@ -164,6 +164,20 @@ end
     for x in xs, y in x:2:10
         push!(desired, (y, x))
     end
+    @test actual == desired
+end
+
+@testset "triangular (3)" begin
+    xs = 1:10
+    actual = []
+    @floop for x in xs, y in x:2:10, z in x:y:20
+        push!(actual, (y, x, z))
+    end
+    desired = []
+    for x in xs, y in x:2:10, z in x:y:20
+        push!(desired, (y, x, z))
+    end
+    @test !isempty(actual)  # make sure it tests _something_
     @test actual == desired
 end
 
