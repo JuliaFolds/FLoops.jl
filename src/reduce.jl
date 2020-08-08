@@ -243,6 +243,7 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
             $(combine_bodies...)
             return ($(accs_symbols...),)
         end
+        $_verify_no_boxes($reducing_function)
         $result = $_fold(
             $whencombine($combine_function, $reducing_function),
             $OnInit(() -> ($(init_exprs...),)),
