@@ -302,7 +302,7 @@ function transform_multi_loop(loop_axes)
     rf_arg = :(($(reverse(loop_vars)...),))
     if is_triangular
         coll = foldr(
-            zip(loop_vars, loop_collections);
+            collect(zip(loop_vars, loop_collections));  # `collect` for Julia 1.0
             init = :($(reverse(loop_vars)...),),
         ) do (v, axis), coll
             f = gensym("loop_axis_$v")
