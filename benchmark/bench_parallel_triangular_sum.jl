@@ -11,12 +11,12 @@ function sum_triangular(exc, xs, f = f)
         a1 in f(a0),
         a2 in f(a1),
         a3 in f(a2),
-        a4 in f(a2),
-        a5 in f(a2),
-        a6 in f(a2),
-        a7 in f(a2),
-        a8 in f(a2),
-        a9 in f(a2)
+        a4 in f(a3),
+        a5 in f(a3),
+        a6 in f(a3),
+        a7 in f(a3),
+        a8 in f(a3),
+        a9 in f(a3)
 
         m = a0 * a1 * a2 * a3 * a4 * a5 * a6 * a7 * a8 * a9
         @reduce(s = init + m)
