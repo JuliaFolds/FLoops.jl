@@ -18,7 +18,7 @@ jobs:
           # https://github.com/peter-evans/create-pull-request/blob/master/docs/concepts-guidelines.md#push-using-ssh-deploy-keys
 
       # https://github.com/tkf/julia-merge-except-manifests
-      - uses: tkf/julia-merge-except-manifests@composite
+      - uses: tkf/julia-merge-except-manifests@v1
         with:
           target: create-pull-request/pkg-update
 
