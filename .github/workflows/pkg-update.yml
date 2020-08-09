@@ -41,6 +41,8 @@ jobs:
             ## Commit Message
             Update */Manifest.toml
 
+            Manifest.toml files are updated via GitHub Actions.
+
           # When merging PR via Mergify using squash method, it can
           # create large commit message by listing titles of all
           # commits (default behavior of GitHub squash merge).
