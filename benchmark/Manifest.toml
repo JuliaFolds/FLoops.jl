@@ -138,9 +138,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[MLStyle]]
-git-tree-sha1 = "21213f53e79c6f966c1f7f58a2af02be6da684f2"
+git-tree-sha1 = "96025d43382425ee3d486e3d9ec4abc2b5eb4485"
 uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
-version = "0.4.4"
+version = "0.4.5"
 
 [[MacroTools]]
 deps = ["Markdown", "Random"]
@@ -250,7 +250,7 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Transducers]]
 deps = ["ArgCheck", "BangBang", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "3ad37280f0911e287a849a1f50644b67dcd8133b"
+git-tree-sha1 = "2dc7f1f7fe9ffb14f521c96e55c2141b70e55266"
 repo-rev = "master"
 repo-url = "https://github.com/JuliaFolds/Transducers.jl.git"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
