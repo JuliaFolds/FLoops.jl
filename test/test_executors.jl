@@ -19,6 +19,51 @@ function f_filter_sum(executor)
     return s
 end
 
+function f_sum_nested_loop(executor)
+    @floop executor for x in 1:10
+        for y in 1:x
+            @reduce(s += y)
+        end
+    end
+    return s
+end
+
+function f_sum_update(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s += 2x)
+        end
+    end
+    return s
+end
+
+function f_sum_op_init(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s = 0 + 2x)
+        end
+    end
+    return s
+end
+
+function f_count_update(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s += 1)
+        end
+    end
+    return s
+end
+
+function f_count_op_init(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s = 0 + 1)
+        end
+    end
+    return s
+end
+
 function f_sum_continue(executor)
     @floop executor for x in 1:10
         x > 4 && continue
@@ -58,6 +103,11 @@ end
 @testset "$f" for (f, desired, distributed) in [
     (f_sum, 55, true),
     (f_filter_sum, 25, true),
+    (f_sum_nested_loop, 220, true),
+    (f_sum_update, 50, true),
+    (f_sum_op_init, 50, true),
+    (f_count_update, 5, true),
+    (f_count_op_init, 5, true),
     (f_sum_continue, 10, true),
     (f_sum_break, 6, true),
     (f_find_return, (:found, 3), true),

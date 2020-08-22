@@ -173,7 +173,7 @@ function as_rf_body(body, info)
     @match body begin
         # Do not transform `break` in inside other `for` loops:
         Expr(:for, nloop, nbody) =>
-            Expr(:for, nbody, as_rf_body(nbody, @set info.nested_for = true))
+            Expr(:for, nloop, as_rf_body(nbody, @set info.nested_for = true))
 
         Expr(:continue) => info.nested_for ? body : :(return $(info.pack_state))
         Expr(:break) => info.nested_for ? body : :(return $reduced($(info.pack_state)))
