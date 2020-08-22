@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - master
+      - actions/trigger/test
     tags: '*'
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
