@@ -46,8 +46,7 @@ end
 macro floop(executor, ex)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    has_reduce(exx) && return esc(floop_parallel(exx, simd, executor))
-    throw(ArgumentError("`@floop` with `executor` requires `@reduce`"))
+    esc(floop_parallel(exx, simd, executor))
 end
 
 struct Return{T}
