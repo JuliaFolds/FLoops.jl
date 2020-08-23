@@ -242,6 +242,9 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
         push!(all_rf_inputs, inputs)
         verify_unique_symbols(accs, "accumulator")
         verify_unique_symbols(inputs, "input")
+        # TODO: input symbols just have to be unique within a
+        # `@reduce` block.  This restriction (unique across all
+        # `@reduce`) can be removed.
         initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
         function rf_body_with_init(pre_updates = [])
             quote

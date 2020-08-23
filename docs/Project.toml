@@ -1,2 +1,5 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
+LiterateTest = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
+LoadAllPackages = "b37bcd2d-1570-475d-a8c6-9b4fae6d0ba9"
