@@ -136,18 +136,20 @@ parts (in the above example, `dmax = -1`, `imax = 0`, and `jmax = 0`)
 to outside `for` loop:
 
 ```julia
-julia> dmax = -1  # -+
-       imax = 0   #  | initializers
-       jmax = 0   # -+
-       for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
-           d = abs(v - w)
-           if isless(dmax, d)  # -+
-               dmax = d        #  | `do` block body
-               imax = i        #  |
-               jmax = j        #  |
-           end                 # -+
+julia> let
+           dmax = -1  # -+
+           imax = 0   #  | initializers
+           jmax = 0   # -+
+           for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
+               d = abs(v - w)
+               if isless(dmax, d)  # -+
+                   dmax = d        #  | `do` block body
+                   imax = i        #  |
+                   jmax = j        #  |
+               end                 # -+
+           end
+           (dmax, imax, jmax)
        end
-       (dmax, imax, jmax)
 (5, 1, 3)
 ```
 
