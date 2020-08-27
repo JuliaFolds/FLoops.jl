@@ -15,7 +15,7 @@ using Test                                                             #src
     @floop for x in 1:10
         y = 2x
         @reduce() do (acc; y)
-            acc + y
+            acc += y
         end
     end
     acc
