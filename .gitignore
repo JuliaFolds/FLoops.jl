@@ -3,4 +3,5 @@
 /benchmark/*.json
 /docs/build
 /docs/site
+/docs/src
 Manifest.toml

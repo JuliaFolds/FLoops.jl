@@ -134,16 +134,17 @@ function analyze_rf_args(ex::Expr)
     inputs = []
     for arg in ex.args
         @match arg begin
-            Expr(:block, acc_init, ::LineNumberNode, x) => begin
-                push!(inputs, x)
-                @match acc_init begin
-                    Expr(:(=), a, i) => begin
-                        push!(accs, a)
-                        push!(inits, i)
+            Expr(:block, acc_init, x) || Expr(:block, acc_init, ::LineNumberNode, x) =>
+                begin
+                    push!(inputs, x)
+                    @match acc_init begin
+                        Expr(:(=), a, i) => begin
+                            push!(accs, a)
+                            push!(inits, i)
+                        end
+                        a => push!(accs, a)
                     end
-                    a => push!(accs, a)
                 end
-            end
             Expr(:tuple, a, x) => begin
                 throw(ArgumentError("got `($a, $x)` use `($a; $x)` instead"))
             end
@@ -242,6 +243,9 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
         push!(all_rf_inputs, inputs)
         verify_unique_symbols(accs, "accumulator")
         verify_unique_symbols(inputs, "input")
+        # TODO: input symbols just have to be unique within a
+        # `@reduce` block.  This restriction (unique across all
+        # `@reduce`) can be removed.
         initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
         function rf_body_with_init(pre_updates = [])
             quote
