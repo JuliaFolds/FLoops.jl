@@ -34,16 +34,16 @@ catch err
     @test err isa Exception
 end
 
-## TODO: @reduce(a += x, b *= x) should work
-##
-## # Note that `op=` syntax does not have this restriction:
-##
-## @test begin
-##     @floop for x in 1:10
-##         @reduce(a += x, b *= x)
-##     end
-##     (a, b)
-## end == (55, 3628800)
+#src TODO: @reduce(a += x, b *= x) should work
+#src
+#src # Note that `op=` syntax does not have this restriction:
+#src
+#src @test begin
+#src     @floop for x in 1:10
+#src         @reduce(a += x, b *= x)
+#src     end
+#src     (a, b)
+#src end == (55, 3628800)
 
 # The argument should be manually duplicated when using the same
 # variable that would be merged into multiple accumulators:
