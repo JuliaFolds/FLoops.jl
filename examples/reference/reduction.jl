@@ -33,3 +33,42 @@ end == 110
 catch err
     @test err isa Exception
 end
+
+# Note that `op=` syntax does not have this restriction:
+
+@test begin
+    @floop for x in 1:10
+        @reduce(a += x, b *= x)
+    end
+    (a, b)
+end == (55, 3628800)
+
+# The argument should be manually duplicated when using the same
+# variable that would be merged into multiple accumulators:
+
+@test begin
+    @floop for x in 1:10
+        y = x
+        @reduce() do (a; x), (b; y)
+            a += x
+            b *= y
+        end
+    end
+    (a, b)
+end == (55, 3628800)
+
+# If two accumulators do not interact as in the case above, it is
+# recommended to use two `@reduce() do` blocks to clarify that they
+# are independent reductions:
+
+@test begin
+    @floop for x in 1:10
+        @reduce() do (a; x)
+            a += x
+        end
+        @reduce() do (b; x)
+            b *= x
+        end
+    end
+    (a, b)
+end == (55, 3628800)
