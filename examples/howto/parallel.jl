@@ -35,6 +35,9 @@ end == [55, 110, 165]
 
 # ### INCORRECT EXAMPLE
 
+# This example has data race because the array `ys0` is shared across
+# all base cases and mutated in parallel.
+
 ys0 = zeros(3)
 @floop for x in 1:10
     xs = [x, 2x, 3x]
