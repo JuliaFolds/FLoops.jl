@@ -21,8 +21,9 @@ julia = "1"
 [extras]
 BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+LiterateTest = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
 MicroCollections = "128add7d-3638-4c79-886c-908ea0c25c34"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["BangBang", "Documenter", "MicroCollections", "Test"]
+test = ["BangBang", "Documenter", "LiterateTest", "MicroCollections", "Test"]
