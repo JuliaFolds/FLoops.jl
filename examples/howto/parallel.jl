@@ -31,8 +31,8 @@ end == [55, 110, 165]
 #
 #     Technically, it is correct to mutate objects in the loop body if
 #     the objects are protected by a lock.  However, it means that the
-#     code block protected by the lock can be executed by a single
-#     task.  For efficient data parallel loops, it is highly
+#     code block protected by the lock can only be executed by a
+#     single task.  For efficient data parallel loops, it is highly
 #     recommended to use **non**-thread-safe data collection (i.e., no
 #     lock) and construct the `@reduce` block that efficiently merge
 #     two mutable objects.
