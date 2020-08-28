@@ -59,9 +59,9 @@ uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 
 [[DocStringExtensions]]
 deps = ["LibGit2", "Markdown", "Pkg", "Test"]
-git-tree-sha1 = "c5714d9bcdba66389612dc4c47ed827c64112997"
+git-tree-sha1 = "50ddf44c53698f5e784bbebb3f4b21c5807401b1"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.8.2"
+version = "0.8.3"
 
 [[Documenter]]
 deps = ["Base64", "Dates", "DocStringExtensions", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
@@ -124,11 +124,11 @@ version = "2.6.0"
 
 [[LiterateTest]]
 deps = ["Test"]
-git-tree-sha1 = "f10e6f4d46da26a33e9cea7a5aed3476b592bbfb"
+git-tree-sha1 = "153b45f04745016443f1277bbedae3bd9e148a6e"
 repo-rev = "master"
 repo-url = "https://github.com/tkf/LiterateTest.jl.git"
 uuid = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
-version = "0.1.4"
+version = "0.1.5-DEV"
 
 [[LoadAllPackages]]
 deps = ["Pkg"]
