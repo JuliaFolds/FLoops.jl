@@ -1,13 +1,52 @@
 using Documenter
 using FLoops
+using Literate
+using LiterateTest
+using LoadAllPackages
 
-makedocs(
+LoadAllPackages.loadall(joinpath((@__DIR__), "Project.toml"))
+
+PAGES = [
+    "index.md",
+    "Reference" => [
+        # "Sequential loop" => "reference/sequential.md",
+        "Parallelizable reduction (WIP)" => "reference/reduction.md",
+    ],
+    # "Tutorials" => ...,
+    "How-to guides" => [
+        # TODO: Finer grained pages?
+        "How to do _X_ in parallel?" => "howto/parallel.md",
+    ],
+    # "Explanation" => ...,
+]
+
+let example_dir = joinpath(dirname(@__DIR__), "examples")
+    examples = Pair{String,String}[]
+
+    for subpages in PAGES
+        subpages isa Pair || continue
+        for (_, mdpath) in subpages[2]::Vector
+            stem, _ = splitext(mdpath)
+            jlpath = joinpath(example_dir, "$stem.jl")
+            if !isfile(jlpath)
+                @info "`$jlpath` does not exist. Skipping..."
+                continue
+            end
+            push!(examples, jlpath => joinpath(@__DIR__, "src", dirname(mdpath)))
+        end
+    end
+
+    @info "Compiling example files" examples
+    for (jlpath, dest) in examples
+        Literate.markdown(jlpath, dest; config = LiterateTest.config(), documenter = true)
+    end
+end
+
+makedocs(;
     sitename = "FLoops",
     format = Documenter.HTML(),
-    modules = [FLoops]
+    modules = [FLoops],
+    pages = PAGES,
 )
 
-deploydocs(;
-    repo = "github.com/JuliaFolds/FLoops.jl",
-    push_preview = true,
-)
+deploydocs(; repo = "github.com/JuliaFolds/FLoops.jl", push_preview = true)

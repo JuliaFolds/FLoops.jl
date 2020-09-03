@@ -25,9 +25,8 @@ Use [`@reduce`](@ref) for parallel execution:
         @reduce ...
     end
 
-`@floop` with `@reduce` can take an `executor` argument (which should
-be an instance of one of `SequentialEx`, `ThreadedEx` and
-`DistributedEx`):
+`@floop` can also take an `executor` argument (which should be an
+instance of one of `SequentialEx`, `ThreadedEx` and `DistributedEx`):
 
     @floop executor for x in xs, ...
         ...
@@ -46,8 +45,7 @@ end
 macro floop(executor, ex)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    has_reduce(exx) && return esc(floop_parallel(exx, simd, executor))
-    throw(ArgumentError("`@floop` with `executor` requires `@reduce`"))
+    esc(floop_parallel(exx, simd, executor))
 end
 
 struct Return{T}
@@ -174,7 +172,7 @@ function as_rf_body(body, info)
     @match body begin
         # Do not transform `break` in inside other `for` loops:
         Expr(:for, nloop, nbody) =>
-            Expr(:for, nbody, as_rf_body(nbody, @set info.nested_for = true))
+            Expr(:for, nloop, as_rf_body(nbody, @set info.nested_for = true))
 
         Expr(:continue) => info.nested_for ? body : :(return $(info.pack_state))
         Expr(:break) => info.nested_for ? body : :(return $reduced($(info.pack_state)))

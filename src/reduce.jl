@@ -8,6 +8,9 @@
 Declare how accumulators are updated in the sequential basecase and
 how the resulting accumulators from two basecases are combined.
 
+The arguments `accᵢ` and `xᵢ` must be symbols except for `xᵢ` of the
+last two forms in which an expression can be used at `xᵢ`.
+
 In the first form,
 
 ```julia
@@ -17,11 +20,43 @@ function ((acc₁, acc₂, ..., accₙ), (x₁, x₂, ..., xₙ))
 end
 ```
 
-should be an associative function.  If `initᵢ` is specified, the tuple
-`(init₁, init₂, ..., initₙ)` should be the identify of this
-associative function.
+should be an associative function.
 
 In the last two forms, every `opᵢ` should be an associative function.
+
+If `initᵢ` is specified, the tuple `(init₁, init₂, ..., initₙ)` should
+be the identify of the related associative function.  `accᵢ = initᵢ`
+is evaluated for each basecase (each `Task`) in the beginning.
+
+Consider a loop with the following form
+
+```julia
+@floop for ...
+    # code computing (x₁, x₂, ..., xₙ)
+    @reduce() do (acc₁ = init₁; x₁), ..., (accₙ = initₙ; xₙ)
+        # code updating (acc₁, acc₂, ..., accₙ) using (x₁, x₂, ..., xₙ)
+    end
+end
+```
+
+This is converted to
+
+```julia
+acc₁ = init₁
+...
+accₙ = initₙ
+for ...
+    # code computing (x₁, x₂, ..., xₙ)
+    # code updating (acc₁, acc₂, ..., accₙ) using (x₁, x₂, ..., xₙ)
+end
+```
+
+for computing `(acc₁, acc₂, ..., accₙ)` of each basecase.  The
+accumulators `accᵢ` of two basecases are combined using "code updating
+`(acc₁, acc₂, ..., accₙ)` using `(x₁, x₂, ..., xₙ)`" where `(x₁, x₂,
+..., xₙ)` are replaced with `(acc₁, acc₂, ..., accₙ)` of the next
+basecase.  Note that "code computing `(x₁, x₂, ..., xₙ)`" is not used
+for combining the basecases.
 
 # Examples
 ```julia
@@ -99,16 +134,17 @@ function analyze_rf_args(ex::Expr)
     inputs = []
     for arg in ex.args
         @match arg begin
-            Expr(:block, acc_init, ::LineNumberNode, x) => begin
-                push!(inputs, x)
-                @match acc_init begin
-                    Expr(:(=), a, i) => begin
-                        push!(accs, a)
-                        push!(inits, i)
+            Expr(:block, acc_init, x) || Expr(:block, acc_init, ::LineNumberNode, x) =>
+                begin
+                    push!(inputs, x)
+                    @match acc_init begin
+                        Expr(:(=), a, i) => begin
+                            push!(accs, a)
+                            push!(inits, i)
+                        end
+                        a => push!(accs, a)
                     end
-                    a => push!(accs, a)
                 end
-            end
             Expr(:tuple, a, x) => begin
                 throw(ArgumentError("got `($a, $x)` use `($a; $x)` instead"))
             end
@@ -147,6 +183,23 @@ function verify_unique_symbols(all_vars, kind)
     end
 end
 
+# To allow something like `@reduce(c += 1)` and `@reduce(c = 0 + 1)`,
+# assign the right (second) argument to a temporary variable:
+function extract_pre_updates(raw_inputs)
+    inputs = []
+    pre_updates = []
+    for x in raw_inputs
+        if x isa Symbol
+            push!(inputs, x)
+        else
+            @gensym tmp
+            push!(pre_updates, :($tmp = $x))
+            push!(inputs, tmp)
+        end
+    end
+    return (inputs, pre_updates)
+end
+
 function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
     accs_symbols = Symbol[]
     inputs_symbols = Symbol[]
@@ -164,6 +217,7 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
             # rf_ex = :(((acc1; input1), ..., (accN; inputN)) -> rf_body)
             accs, inits, inputs = analyze_rf_args(rf_ex.args[1])
             rf_body = rf_ex.args[2]
+            pre_updates = []
             updaters = [rf_body]
         else
             if all(is_rebinding_update, opspecs)
@@ -171,13 +225,14 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
                 ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
                 accs = [x.args[1] for x in opspecs]
                 inits = nothing
-                inputs = [x.args[2] for x in opspecs]
+                (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
             elseif all(x -> isexpr(x, :(=), 2) && isexpr(x.args[2], :call, 3), opspecs)
                 # handle: @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
                 ops = [x.args[2].args[1] for x in opspecs]
                 accs = [x.args[1] for x in opspecs]
                 inits = [x.args[2].args[2] for x in opspecs]
-                inputs = [x.args[2].args[3] for x in opspecs]
+                (inputs, pre_updates) =
+                    extract_pre_updates([x.args[2].args[3] for x in opspecs])
             else
                 error(join(vcat(["unsupported:"], opspecs), "\n"))
             end
@@ -188,25 +243,31 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
         push!(all_rf_inputs, inputs)
         verify_unique_symbols(accs, "accumulator")
         verify_unique_symbols(inputs, "input")
+        # TODO: input symbols just have to be unique within a
+        # `@reduce` block.  This restriction (unique across all
+        # `@reduce`) can be removed.
         initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
-        rf_body_with_init = quote
-            if $grouped_accs isa $_FLoopInit
-                $(initializers...)
-            else
-                ($(accs...),) = $grouped_accs
-                $(updaters...)
+        function rf_body_with_init(pre_updates = [])
+            quote
+                $(pre_updates...)
+                if $grouped_accs isa $_FLoopInit
+                    $(initializers...)
+                else
+                    ($(accs...),) = $grouped_accs
+                    $(updaters...)
+                end
+                $grouped_accs = ($(accs...),)
             end
-            $grouped_accs = ($(accs...),)
         end
         combine_body = quote
             if $grouped_inputs isa $_FLoopInit
             else
                 ($(inputs...),) = $grouped_inputs
-                $rf_body_with_init
+                $(rf_body_with_init())
             end
         end
         push!(combine_bodies, combine_body)
-        return rf_body_with_init
+        return rf_body_with_init(pre_updates)
     end
 
     body2, info = transform_loop_body(body1, accs_symbols)

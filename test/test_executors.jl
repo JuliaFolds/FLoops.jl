@@ -3,6 +3,15 @@ module TestExecutors
 using FLoops
 using Test
 
+function f_copy(executor)
+    xs = 1:10
+    ys = zeros(10)
+    @floop executor for i in eachindex(xs, ys)
+        ys[i] = xs[i]
+    end
+    return ys
+end
+
 function f_sum(executor)
     @floop executor for x in 1:10
         @reduce(s += x)
@@ -14,6 +23,51 @@ function f_filter_sum(executor)
     @floop executor for x in 1:10
         if isodd(x)
             @reduce(s += x)
+        end
+    end
+    return s
+end
+
+function f_sum_nested_loop(executor)
+    @floop executor for x in 1:10
+        for y in 1:x
+            @reduce(s += y)
+        end
+    end
+    return s
+end
+
+function f_sum_update(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s += 2x)
+        end
+    end
+    return s
+end
+
+function f_sum_op_init(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s = 0 + 2x)
+        end
+    end
+    return s
+end
+
+function f_count_update(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s += 1)
+        end
+    end
+    return s
+end
+
+function f_count_op_init(executor)
+    @floop executor for x in 1:10
+        if isodd(x)
+            @reduce(s = 0 + 1)
         end
     end
     return s
@@ -55,13 +109,19 @@ function f_find_goto(executor)
     return (:found, s)
 end
 
-@testset "$f" for (f, desired, distributed) in [
-    (f_sum, 55, true),
-    (f_filter_sum, 25, true),
-    (f_sum_continue, 10, true),
-    (f_sum_break, 6, true),
-    (f_find_return, (:found, 3), true),
-    (f_find_goto, (:found, 3), true),
+@testset "$f" for (f, ≛, desired, distributed) in [
+    (f_copy, ==, 1:10, true),
+    (f_sum, ===, 55, true),
+    (f_filter_sum, ===, 25, true),
+    (f_sum_nested_loop, ===, 220, true),
+    (f_sum_update, ===, 50, true),
+    (f_sum_op_init, ===, 50, true),
+    (f_count_update, ===, 5, true),
+    (f_count_op_init, ===, 5, true),
+    (f_sum_continue, ===, 10, true),
+    (f_sum_break, ===, 6, true),
+    (f_find_return, ===, (:found, 3), true),
+    (f_find_goto, ===, (:found, 3), true),
 ]
 
     # Make sure that `executor` is used
@@ -77,16 +137,16 @@ end
     # touches executor:
     @test err.f === FLoops.maybe_set_simd
 
-    @test f(SequentialEx()) === desired
-    @test f(SequentialEx(simd = true)) === desired
-    @test f(ThreadedEx()) === desired
+    @test f(SequentialEx()) ≛ desired
+    @test f(SequentialEx(simd = true)) ≛ desired
+    @test f(ThreadedEx()) ≛ desired
     @testset for basesize in 2:10
-        @test f(ThreadedEx(basesize = 2)) === desired
+        @test f(ThreadedEx(basesize = 2)) ≛ desired
     end
     distributed || continue
-    @test f(DistributedEx()) === desired
+    @test f(DistributedEx()) ≛ desired
     @testset for threads_basesize in 2:10
-        @test f(DistributedEx(threads_basesize = threads_basesize)) === desired
+        @test f(DistributedEx(threads_basesize = threads_basesize)) ≛ desired
     end
 end
 
