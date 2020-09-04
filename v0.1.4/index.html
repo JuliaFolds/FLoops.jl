@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>FLoops.jl · FLoops</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">FLoops</span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>FLoops.jl</a><ul class="internal"><li><a class="tocitem" href="#@floop"><span><code>@floop</code></span></a></li><li><a class="tocitem" href="#@reduce"><span><code>@reduce</code></span></a></li><li><a class="tocitem" href="#SequentialEx,-ThreadedEx-and-DistributedEx-executors"><span><code>SequentialEx</code>, <code>ThreadedEx</code> and <code>DistributedEx</code> executors</span></a></li></ul></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="reference/reduction/">Parallelizable reduction (WIP)</a></li></ul></li><li><span class="tocitem">How-to guides</span><ul><li><a class="tocitem" href="howto/parallel/">How to do <em>X</em> in parallel?</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>FLoops.jl</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>FLoops.jl</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaFolds/FLoops.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="FLoops.jl"><a class="docs-heading-anchor" href="#FLoops.jl">FLoops.jl</a><a id="FLoops.jl-1"></a><a class="docs-heading-anchor-permalink" href="#FLoops.jl" title="Permalink"></a></h1><ul><li><a href="#FLoops.FLoops"><code>FLoops.FLoops</code></a></li><li><a href="#FLoops.ThreadedEx"><code>FLoops.ThreadedEx</code></a></li><li><a href="#FLoops.@floop"><code>FLoops.@floop</code></a></li><li><a href="#FLoops.@reduce"><code>FLoops.@reduce</code></a></li></ul><article class="docstring"><header><a class="docstring-binding" id="FLoops.FLoops" href="#FLoops.FLoops"><code>FLoops.FLoops</code></a> — <span class="docstring-category">Module</span></header><section><div><p><strong>FLoops: <code>fold</code> for humans™</strong></p><p><a href="https://juliafolds.github.io/FLoops.jl/dev"><img src="https://img.shields.io/badge/docs-dev-blue.svg" alt="Dev"/></a> <a href="https://github.com/JuliaFolds/FLoops.jl/actions?query=workflow%3A%22Run+tests%22"><img src="https://github.com/JuliaFolds/FLoops.jl/workflows/Run%20tests/badge.svg" alt="GitHub Actions"/></a></p><p><a href="https://github.com/JuliaFolds/FLoops.jl">FLoops.jl</a> provides a macro <code>@floop</code>.  It can be used to generate a fast generic iteration over complex collections.</p><p><strong>Usage</strong></p><p><strong>Sequential (single-thread) loop</strong></p><p>Simply wrap a <code>for</code> loop and its initialization part by <code>@floop</code>:</p><pre><code class="language-julia-repl">julia&gt; using FLoops  # exports @floop macro
+
+julia&gt; @floop begin
+           s = 0
+           for x in 1:3
+               s += x
+           end
+       end
+       s
+6</code></pre><p>When accumulating into pre-defined variables, simply list them between <code>begin</code> and <code>for</code>.  <code>@floop</code> also works with multiple accumulators.</p><pre><code class="language-julia-repl">julia&gt; @floop begin
+           s
+           p = 1
+           for x in 4:5
+               s += x
+               p *= x
+           end
+       end
+       s
+15
+
+julia&gt; p
+20</code></pre><p>The <code>begin ... end</code> block can be omitted if the <code>for</code> loop does not require local variables to carry the state:</p><pre><code class="language-julia-repl">julia&gt; @floop for x in 1:3
+           @show x
+       end
+x = 1
+x = 2
+x = 3</code></pre><p><strong>Parallel (multi-thread) loop</strong></p><p>Parallel loops require additional syntax <code>@reduce</code>.</p><pre><code class="language-julia-repl">julia&gt; @floop for (x, y) in zip(1:3, 1:2:6)
+           a = x + y
+           b = x - y
+           @reduce(s += a, t += b)
+       end
+       (s, t)
+(15, -3)</code></pre><p>Use <code>acc = op(init, x)</code> to specify that the identity element for the binary function <code>op</code> is <code>init</code>:</p><pre><code class="language-julia-repl">julia&gt; using BangBang  # for `append!!`
+
+julia&gt; using MicroCollections  # for `EmptyVector` and `SingletonVector`
+
+julia&gt; @floop for x in 1:5
+           ys = SingletonVector(x)
+           if isodd(x)
+               @reduce(odds = append!!(EmptyVector(), ys))
+           else
+               @reduce(evens = append!!(EmptyVector(), ys))
+           end
+       end
+       (odds, evens)
+([1, 3, 5], [2, 4])</code></pre><p>When <code>op</code> is a binary operator, the infix syntax <code>acc = init op x</code> can also be used:</p><pre><code class="language-julia-repl">julia&gt; @floop for (x, y) in zip(1:3, 1:2:6)
+           a = x + y
+           b = x - y
+           @reduce(s = 0im + a, t = 0im + b)
+       end
+       (s, t)
+(15 + 0im, -3 + 0im)</code></pre><p><strong>NOTE</strong>: In the above examples, statements like <code>odds = append!!(EmptyVector(), ys)</code> and <code>s = 0im + a</code> are <em>not</em> evaluated for each iteration.  These statements as-is are evaluated only for the first iteration (for each basecase) and then the expressions where the first argument is replaced by the corresponding LHS, i.e., <code>odds = append!!(odds, ys)</code> and <code>s = s + a</code>, are evaluated for the bulk of the loop.</p><p>For more complex reduction, use <code>@reduce() do</code> syntax:</p><pre><code class="language-julia-repl">julia&gt; @floop for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
+           d = abs(v - w)
+           @reduce() do (dmax = -1; d), (imax = 0; i), (jmax = 0; j)
+               if isless(dmax, d)
+                   dmax = d
+                   imax = i
+                   jmax = j
+               end
+           end
+       end
+       (dmax, imax, jmax)
+(5, 1, 3)</code></pre><p>When reading code with <code>@reduce() do</code>, a quick way to understand it is to mentally comment out the line with <code>@reduce() do</code> and the corresponding <code>end</code>.  To get a full picture, move the initialization parts (in the above example, <code>dmax = -1</code>, <code>imax = 0</code>, and <code>jmax = 0</code>) to outside <code>for</code> loop:</p><pre><code class="language-julia-repl">julia&gt; let
+           dmax = -1  # -+
+           imax = 0   #  | initializers
+           jmax = 0   # -+
+           for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
+               d = abs(v - w)
+               if isless(dmax, d)  # -+
+                   dmax = d        #  | `do` block body
+                   imax = i        #  |
+                   jmax = j        #  |
+               end                 # -+
+           end
+           (dmax, imax, jmax)
+       end
+(5, 1, 3)</code></pre><p>This exact transformation is used for defining the sequential basecase.  Consecutive basecases are combined using the code in the <code>do</code> block body.</p><p>Control flow syntaxes (see below) such as <code>continue</code>, <code>break</code>, <code>return</code>, and <code>@goto</code> work with parallel loops:</p><pre><code class="language-julia-repl">julia&gt; @floop for x in 1:10
+           y = 2x
+           @reduce() do (s; y)
+               s = y
+           end
+           x == 3 &amp;&amp; break
+       end
+       s
+6</code></pre><p><code>@reduce</code> can be used multiple times in a loop body</p><pre><code class="language-julia-repl">julia&gt; @floop for (i, v) in pairs([0, 1, 3, 2])
+           y = 2v
+           @reduce() do (ymax; y), (imax; i)
+               if isless(ymax, y)
+                   ymax = y
+                   imax = i
+               end
+           end
+           @reduce() do (ymin; y), (imin; i)
+               if isless(y, ymin)
+                   ymin = y
+                   imin = i
+               end
+           end
+       end
+       (ymax, imax), (ymin, imin)
+((6, 3), (0, 1))</code></pre><p><code>@floop</code> with <code>@reduce</code> can take optional executor argument (default to <code>ThreadedEx()</code>) to specify one of sequential, threaded and distributed execution strategies and the parameters of the strategy:</p><pre><code class="language-julia-repl">julia&gt; function demo(executor)
+           @floop executor for x in 1:10
+               @reduce(s += x)
+           end
+           return s
+       end;
+
+julia&gt; demo(SequentialEx(simd = Val(true)))
+55
+
+julia&gt; demo(ThreadedEx(basesize = 2))
+55
+
+julia&gt; demo(DistributedEx(threads_basesize = 2))
+55</code></pre><p><strong>How it works</strong></p><p><code>@floop</code> works by converting the native Julia <code>for</code> loop syntax to <code>foldl</code> defined by <a href="https://github.com/JuliaFolds/Transducers.jl">Transducers.jl</a>.  Unlike <code>foldl</code> defined in <code>Base</code>, <code>foldl</code> defined by Transducers.jl is <a href="https://tkf.github.io/Transducers.jl/dev/manual/#Base.foreach">powerful enough to cover the <code>for</code> loop semantics and more</a>.</p><p><strong>Supported syntaxes</strong></p><p><strong><code>continue</code></strong></p><pre><code class="language-julia-repl">julia&gt; @floop for x in 1:3
+           if x == 1
+               println(&quot;continue&quot;)
+               continue
+           end
+           @show x
+       end
+continue
+x = 2
+x = 3</code></pre><p><strong><code>break</code></strong></p><pre><code class="language-julia-repl">julia&gt; @floop for x in 1:3
+           @show x
+           if x == 2
+               println(&quot;break&quot;)
+               break
+           end
+       end
+x = 1
+x = 2
+break</code></pre><p><strong><code>return</code></strong></p><pre><code class="language-julia-repl">julia&gt; function demo()
+           @floop for x in 1:3
+               @show x
+               if x == 2
+                   return &quot;return&quot;
+               end
+           end
+       end
+       demo()
+x = 1
+x = 2
+&quot;return&quot;</code></pre><p><strong><code>@goto</code></strong></p><pre><code class="language-julia-repl">julia&gt; begin
+       @floop for x in 1:3
+           x == 1 &amp;&amp; @goto L1
+           @show x
+           if x == 2
+               @goto L2
+           end
+           @label L1
+       end
+       println(&quot;This is not going to be printed.&quot;)
+       @label L2
+       println(&quot;THIS is going to be printed.&quot;)
+       end
+x = 2
+THIS is going to be printed.</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaFolds/FLoops.jl/blob/8ac613007cf790fecc7d536e2f25b1ef1a72b678/src/FLoops.jl#L4-L299">source</a></section></article><h2 id="@floop"><a class="docs-heading-anchor" href="#@floop"><code>@floop</code></a><a id="@floop-1"></a><a class="docs-heading-anchor-permalink" href="#@floop" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="FLoops.@floop" href="#FLoops.@floop"><code>FLoops.@floop</code></a> — <span class="docstring-category">Macro</span></header><section><div><pre><code class="language-julia">@floop begin
+    s₁ = initialization of s₁
+    s₂  # pre-initialized variable
+    ...
+    for x in xs, ...
+        ...
+    end
+end</code></pre><p><code>@floop begin ... end</code> expects a (possibly empty) series of assignments or variable declaration (as in <code>s₂</code> above) followed by a <code>for</code> loop.</p><p>When there is no induction variables, <code>begin ... end</code> can be omitted:</p><pre><code class="language-none">@floop for x in xs, ...
+    ...
+end</code></pre><p>Use <a href="#FLoops.@reduce"><code>@reduce</code></a> for parallel execution:</p><pre><code class="language-none">@floop for x in xs, ...
+    ...
+    @reduce ...
+end</code></pre><p><code>@floop</code> can also take an <code>executor</code> argument (which should be an instance of one of <code>SequentialEx</code>, <code>ThreadedEx</code> and <code>DistributedEx</code>):</p><pre><code class="language-none">@floop executor for x in xs, ...
+    ...
+    @reduce ...
+end</code></pre><p>See the module docstring of <a href="@ref"><code>Floops</code></a> for examples.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaFolds/FLoops.jl/blob/8ac613007cf790fecc7d536e2f25b1ef1a72b678/src/macro.jl#L1-L37">source</a></section></article><h2 id="@reduce"><a class="docs-heading-anchor" href="#@reduce"><code>@reduce</code></a><a id="@reduce-1"></a><a class="docs-heading-anchor-permalink" href="#@reduce" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="FLoops.@reduce" href="#FLoops.@reduce"><code>FLoops.@reduce</code></a> — <span class="docstring-category">Macro</span></header><section><div><pre><code class="language-julia">@reduce() do (acc₁ [= init₁]; x₁), ..., (accₙ [= initₙ]; xₙ)
+    ...
+end
+@reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
+@reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))</code></pre><p>Declare how accumulators are updated in the sequential basecase and how the resulting accumulators from two basecases are combined.</p><p>The arguments <code>accᵢ</code> and <code>xᵢ</code> must be symbols except for <code>xᵢ</code> of the last two forms in which an expression can be used at <code>xᵢ</code>.</p><p>In the first form,</p><pre><code class="language-julia">function ((acc₁, acc₂, ..., accₙ), (x₁, x₂, ..., xₙ))
+    ...  # body of the `do` block
+    return (acc₁, acc₂, ..., accₙ)
+end</code></pre><p>should be an associative function.</p><p>In the last two forms, every <code>opᵢ</code> should be an associative function.</p><p>If <code>initᵢ</code> is specified, the tuple <code>(init₁, init₂, ..., initₙ)</code> should be the identify of the related associative function.  <code>accᵢ = initᵢ</code> is evaluated for each basecase (each <code>Task</code>) in the beginning.</p><p>Consider a loop with the following form</p><pre><code class="language-julia">@floop for ...
+    # code computing (x₁, x₂, ..., xₙ)
+    @reduce() do (acc₁ = init₁; x₁), ..., (accₙ = initₙ; xₙ)
+        # code updating (acc₁, acc₂, ..., accₙ) using (x₁, x₂, ..., xₙ)
+    end
+end</code></pre><p>This is converted to</p><pre><code class="language-julia">acc₁ = init₁
+...
+accₙ = initₙ
+for ...
+    # code computing (x₁, x₂, ..., xₙ)
+    # code updating (acc₁, acc₂, ..., accₙ) using (x₁, x₂, ..., xₙ)
+end</code></pre><p>for computing <code>(acc₁, acc₂, ..., accₙ)</code> of each basecase.  The accumulators <code>accᵢ</code> of two basecases are combined using &quot;code updating <code>(acc₁, acc₂, ..., accₙ)</code> using <code>(x₁, x₂, ..., xₙ)</code>&quot; where <code>(x₁, x₂, ..., xₙ)</code> are replaced with <code>(acc₁, acc₂, ..., accₙ)</code> of the next basecase.  Note that &quot;code computing <code>(x₁, x₂, ..., xₙ)</code>&quot; is not used for combining the basecases.</p><p><strong>Examples</strong></p><pre><code class="language-julia">@reduce() do (vmax=-Inf; v), (imax=0; i)
+    if isless(vmax, v)
+        vmax = v
+        imax = i
+    end
+end
+
+@reduce(s += y, p *= y)
+
+@reduce(xs = append!!(EmptyVector(), x), ys = append!!(EmptyVector(), y))</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaFolds/FLoops.jl/blob/8ac613007cf790fecc7d536e2f25b1ef1a72b678/src/reduce.jl#L1-L74">source</a></section></article><h2 id="SequentialEx,-ThreadedEx-and-DistributedEx-executors"><a class="docs-heading-anchor" href="#SequentialEx,-ThreadedEx-and-DistributedEx-executors"><code>SequentialEx</code>, <code>ThreadedEx</code> and <code>DistributedEx</code> executors</a><a id="SequentialEx,-ThreadedEx-and-DistributedEx-executors-1"></a><a class="docs-heading-anchor-permalink" href="#SequentialEx,-ThreadedEx-and-DistributedEx-executors" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="FLoops.ThreadedEx" href="#FLoops.ThreadedEx"><code>FLoops.ThreadedEx</code></a> — <span class="docstring-category">Type</span></header><section><div><pre><code class="language-julia">SequentialEx(; kwargs...)
+ThreadedEx(; kwargs...)
+DistributedEx(; kwargs...)</code></pre><p>Sequential, threaded, and distributed executor.  An executor specifies execution strategy and its parameters.</p><p>See <code>foldxl</code>, <code>foldxt</code> and <code>foldxd</code> for usable keyword arguments.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/JuliaFolds/FLoops.jl/blob/8ac613007cf790fecc7d536e2f25b1ef1a72b678/src/reduce.jl#L345-L354">source</a></section></article></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="reference/reduction/">Parallelizable reduction (WIP) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Friday 4 September 2020 02:46">Friday 4 September 2020</span>. Using Julia version 1.4.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
