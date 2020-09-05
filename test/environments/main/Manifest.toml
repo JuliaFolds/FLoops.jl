@@ -30,6 +30,14 @@ git-tree-sha1 = "a2a6a5fea4d6f730ec4c18a76d27ec10e8ec1c50"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 version = "1.0.0"
 
+[[ContextVariablesX]]
+deps = ["Compat", "Logging", "UUIDs"]
+git-tree-sha1 = "5ff0e608bd08bd3ab791295b5caee8fda1f50119"
+repo-rev = "master"
+repo-url = "https://github.com/tkf/ContextVariablesX.jl.git"
+uuid = "6add18c4-b38d-439d-96f6-d6bc489c04c5"
+version = "0.1.1-DEV"
+
 [[DataAPI]]
 git-tree-sha1 = "176e23402d80e7743fc26c19c681bfb11246af32"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
@@ -70,10 +78,18 @@ uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 version = "0.25.2"
 
 [[FLoops]]
-deps = ["Compat", "JuliaVariables", "MLStyle", "Setfield", "Transducers"]
+deps = ["Compat", "FLoopsBase", "JuliaVariables", "MLStyle", "Setfield", "Transducers"]
 path = "../../.."
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
-version = "0.1.4-DEV"
+version = "0.1.5-DEV"
+
+[[FLoopsBase]]
+deps = ["ContextVariablesX"]
+git-tree-sha1 = "5ce7d7b0851a9c8a7efc3e40fc276ebaa0c0b41c"
+repo-rev = "master"
+repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
+uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
+version = "0.1.1-DEV"
 
 [[Future]]
 deps = ["Random"]
