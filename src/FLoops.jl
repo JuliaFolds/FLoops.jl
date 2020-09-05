@@ -9,6 +9,7 @@ end FLoops
 export @floop, @reduce, DistributedEx, SequentialEx, ThreadedEx
 
 using Base.Meta: isexpr
+using FLoopsBase: EXTRA_STATE_VARIABLES
 using JuliaVariables: JuliaVariables, Var, simplify_ex
 using MLStyle: @match
 using Setfield: @set

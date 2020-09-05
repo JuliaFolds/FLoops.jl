@@ -81,6 +81,7 @@ function floop(ex, simd)
     if ansvar !== :_
         post = vcat(post, ansvar)
     end
+    pre = vcat(pre, something(EXTRA_STATE_VARIABLES[], Union{}[]))
 
     init_vars = mapcat(assigned_vars, pre)
     foldlex = @match loops begin
