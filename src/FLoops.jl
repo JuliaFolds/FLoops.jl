@@ -6,7 +6,7 @@ module FLoops
     replace(read(path, String), r"^```julia"m => "```jldoctest README")
 end FLoops
 
-export @floop, @reduce, DistributedEx, SequentialEx, ThreadedEx
+export @floop, @reduce, DistributedEx, FallbackEx, SequentialEx, ThreadedEx
 
 using Base.Meta: isexpr
 using FLoopsBase: EXTRA_STATE_VARIABLES
@@ -25,6 +25,7 @@ using Transducers:
     complete,
     extract_transducer,
     foldl_nocomplete,
+    foldx_base,
     foldxd,
     foldxl,
     foldxt,

@@ -342,17 +342,22 @@ _fold(rf::RF, init, coll, exc::SequentialEx) where {RF} =
 _fold(rf, init, coll, exc::ThreadedEx) = foldxt(rf, coll; exc.kwargs..., init = init)
 _fold(rf, init, coll, exc::DistributedEx) = foldxd(rf, coll; exc.kwargs..., init = init)
 
+struct FallbackEx end
+maybe_set_simd(exc::FallbackEx, _) = exc
+_fold(rf, init, coll, ::FallbackEx) = foldx_base(rf, coll; init = init)
+
 """
     SequentialEx(; kwargs...)
     ThreadedEx(; kwargs...)
     DistributedEx(; kwargs...)
+    FallbackEx()
 
 Sequential, threaded, and distributed executor.  An executor specifies
 execution strategy and its parameters.
 
 See `foldxl`, `foldxt` and `foldxd` for usable keyword arguments.
 """
-(SequentialEx, ThreadedEx, DistributedEx)
+(SequentialEx, ThreadedEx, DistributedEx, FallbackEx)
 
 function Base.show(io::IO, exc::Executor)
     T = typeof(exc.kwargs)
