@@ -8,15 +8,18 @@ LoadAllPackages.loadall(joinpath((@__DIR__), "Project.toml"))
 
 PAGES = [
     "index.md",
+    "Tutorials" => [
+        "Sequential loops" => "tutorials/sequential.md",
+        "Parallel loops" => "tutorials/parallel.md",
+    ],
+    "How-to guides" => [
+        # TODO: Finer grained pages?
+        "How to do _X_ in parallel?" => "howto/parallel.md",
+    ],
     "Reference" => [
         "Syntax" => "reference/syntax.md",
         # "Sequential loop" => "reference/sequential.md",
         "Parallelizable reduction (WIP)" => "reference/reduction.md",
-    ],
-    # "Tutorials" => ...,
-    "How-to guides" => [
-        # TODO: Finer grained pages?
-        "How to do _X_ in parallel?" => "howto/parallel.md",
     ],
     # "Explanation" => ...,
 ]
