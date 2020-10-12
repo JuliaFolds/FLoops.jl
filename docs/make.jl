@@ -17,6 +17,7 @@ PAGES = [
         "How to do _X_ in parallel?" => "howto/parallel.md",
     ],
     "Reference" => [
+        "API" => "reference/api.md",
         "Syntax" => "reference/syntax.md",
         # "Sequential loop" => "reference/sequential.md",
         "Parallelizable reduction (WIP)" => "reference/reduction.md",
