@@ -1,4 +1,4 @@
-# Parallel loop
+# [Parallel loop](@id tutorials-parallel)
 
 Parallel loops require additional syntax `@reduce`.
 

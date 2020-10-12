@@ -3,7 +3,19 @@ module FLoops
 # Use README as the docstring of the module:
 @doc let path = joinpath(dirname(@__DIR__), "README.md")
     include_dependency(path)
-    replace(read(path, String), r"^```julia"m => "```jldoctest README")
+    doc = read(path, String)
+    doc = replace(doc, r"^```julia"m => "```jldoctest README")
+    doc = replace(
+        doc,
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/sequential/" =>
+            "@ref tutorials-sequential",
+    )
+    doc = replace(
+        doc,
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/" =>
+            "@ref tutorials-parallel",
+    )
+    doc
 end FLoops
 
 export @floop, @reduce, DistributedEx, SequentialEx, ThreadedEx

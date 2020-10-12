@@ -1,4 +1,4 @@
-# Sequential (single-thread) loops
+# [Sequential (single-thread) loops](@id tutorials-sequential)
 
 Simply wrap a `for` loop and its initialization part by `@floop`:
 
