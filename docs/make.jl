@@ -9,6 +9,7 @@ LoadAllPackages.loadall(joinpath((@__DIR__), "Project.toml"))
 PAGES = [
     "index.md",
     "Reference" => [
+        "Syntax" => "reference/syntax.md",
         # "Sequential loop" => "reference/sequential.md",
         "Parallelizable reduction (WIP)" => "reference/reduction.md",
     ],
