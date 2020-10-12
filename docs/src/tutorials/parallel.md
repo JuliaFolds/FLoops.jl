@@ -1,4 +1,4 @@
-# [Parallel loop](@id tutorials-parallel)
+# [Parallel loops](@id tutorials-parallel)
 
 Parallel loops require additional syntax `@reduce`.
 
@@ -11,6 +11,8 @@ julia> @floop for (x, y) in zip(1:3, 1:2:6)
        (s, t)
 (15, -3)
 ```
+
+## Initialization with `@reduce(acc = op(init, x))` syntax
 
 Use `acc = op(init, x)` to specify that the identity element for the
 binary function `op` is `init`:
@@ -31,6 +33,8 @@ julia> @floop for x in 1:5
        (odds, evens)
 ([1, 3, 5], [2, 4])
 ```
+
+## Initialization with `@reduce(acc = init op x)` syntax
 
 When `op` is a binary operator, the infix syntax `acc = init op x` can
 also be used:
@@ -53,6 +57,8 @@ first argument is replaced by the corresponding LHS, i.e., `odds =
 append!!(odds, ys)` and `s = s + a`, are evaluated for the bulk of the
 loop.
 
+## Complex reduction with `@reduce() do` syntax
+
 For more complex reduction, use `@reduce() do` syntax:
 
 ```julia
@@ -69,6 +75,8 @@ julia> @floop for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
        (dmax, imax, jmax)
 (5, 1, 3)
 ```
+
+### How to read a loop with `@reduce() do` syntax
 
 When reading code with `@reduce() do`, a quick way to understand it is
 to mentally comment out the line with `@reduce() do` and the
@@ -97,6 +105,8 @@ julia> let
 This exact transformation is used for defining the sequential
 basecase.  Consecutive basecases are combined using the code in the
 `do` block body.
+
+## Control flow syntaxes
 
 Control flow syntaxes such as `continue`, `break`, `return`, and
 `@goto` work with parallel loops:
@@ -134,6 +144,8 @@ julia> @floop for (i, v) in pairs([0, 1, 3, 2])
        (ymax, imax), (ymin, imin)
 ((6, 3), (0, 1))
 ```
+
+## Executors
 
 `@floop` with `@reduce` can take optional executor argument (default
 to `ThreadedEx()`) to specify one of sequential, threaded and

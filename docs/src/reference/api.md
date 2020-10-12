@@ -12,7 +12,7 @@ FLoops.@floop
 FLoops.@reduce
 ```
 
-## `SequentialEx`, `ThreadedEx` and `DistributedEx` executors
+## [`SequentialEx`, `ThreadedEx` and `DistributedEx` executors](@id executor)
 
 ```@docs
 FLoops.ThreadedEx
