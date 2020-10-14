@@ -1,6 +1,13 @@
 # [Parallel loops](@id tutorials-parallel)
 
-Parallel loops require additional syntax `@reduce`.
+`@floop` supports parallel loops require additional syntax `@reduce`.
+The parallel loops written with `@floop` can be executed with multiple
+[executors](@ref tutorials-executor).  FLoops.jl support sequential,
+threaded and distributed executors.
+[FoldsCUDA.jl](https://github.com/JuliaFolds/FoldsCUDA.jl) provides an
+executor for GPU.
+
+Here is a simple parallel loop example using `@reduce(acc op= x)` syntax:
 
 ```julia
 julia> @floop for (x, y) in zip(1:3, 1:2:6)
@@ -145,7 +152,7 @@ julia> @floop for (i, v) in pairs([0, 1, 3, 2])
 ((6, 3), (0, 1))
 ```
 
-## Executors
+## [Executors](@id tutorials-executor)
 
 `@floop` with `@reduce` can take optional executor argument (default
 to `ThreadedEx()`) to specify one of sequential, threaded and
@@ -168,3 +175,6 @@ julia> demo(ThreadedEx(basesize = 2))
 julia> demo(DistributedEx(threads_basesize = 2))
 55
 ```
+
+[FoldsCUDA.jl](https://github.com/JuliaFolds/FoldsCUDA.jl) provides
+`CUDAEx` for executing the parallel loop on GPU.

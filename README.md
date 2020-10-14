@@ -7,6 +7,9 @@
 `@floop`.  It can be used to generate a fast generic iteration over
 complex collections.
 
+See [FoldsCUDA.jl](https://github.com/JuliaFolds/FoldsCUDA.jl) for GPU
+support.
+
 ## Usage
 
 # Sequential (single-thread) loops
