@@ -28,9 +28,9 @@ version = "0.5.0"
 
 [[BlockArrays]]
 deps = ["ArrayLayouts", "Compat", "FillArrays", "LinearAlgebra"]
-git-tree-sha1 = "991ebcb0a29450b861b5521c3217b5444f16cc2a"
+git-tree-sha1 = "824b1094a47d7da81f9ff77cb56c3341f2f92097"
 uuid = "8e7c35d0-a365-5155-bbbb-fb81a777f24e"
-version = "0.12.13"
+version = "0.12.14"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
@@ -99,9 +99,9 @@ version = "0.1.1-DEV"
 
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays"]
-git-tree-sha1 = "502b3de6039d5b78c76118423858d981349f3823"
+git-tree-sha1 = "0c667e0749e6b67cc03a1fe705d80a6d737109e6"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "0.9.7"
+version = "0.10.0"
 
 [[Future]]
 deps = ["Random"]
