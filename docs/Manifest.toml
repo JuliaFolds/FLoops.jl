@@ -32,9 +32,9 @@ version = "1.0.0"
 
 [[ContextVariablesX]]
 deps = ["Compat", "Logging", "UUIDs"]
-git-tree-sha1 = "f4b33f7da62cc7fb2421771baa466105b6cb002f"
+git-tree-sha1 = "fc81d9dd4ffdafb56680f01e6d9db464a6b3689d"
 uuid = "6add18c4-b38d-439d-96f6-d6bc489c04c5"
-version = "0.1.0"
+version = "0.1.1"
 
 [[DataAPI]]
 git-tree-sha1 = "ad84f52c0b8f05aa20839484dbaf01690b41ff84"
