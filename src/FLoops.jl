@@ -28,11 +28,16 @@ using Setfield: @set
 using Transducers:
     @return_if_reduced,
     Cat,
+    DistributedEx,
+    Executor,
+    IdentityTransducer,
     Map,
     MapCat,
     OnInit,
     ReduceIf,
     Reduction,
+    SequentialEx,
+    ThreadedEx,
     Transducers,
     complete,
     extract_transducer,
@@ -40,9 +45,11 @@ using Transducers:
     foldxd,
     foldxl,
     foldxt,
+    maybe_set_simd,
     next,
     reduced,
     right,
+    transduce,
     whencombine
 
 if isdefined(JuliaVariables, :solve!)
