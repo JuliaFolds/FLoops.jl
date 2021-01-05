@@ -50,6 +50,7 @@ using Transducers:
     reduced,
     right,
     transduce,
+    unreduced,
     whencombine
 
 if isdefined(JuliaVariables, :solve!)

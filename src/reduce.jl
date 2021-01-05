@@ -321,7 +321,7 @@ end
 struct _FLoopInit end
 
 _fold(rf::RF, init, coll, exc::Executor) where {RF} =
-    transduce(IdentityTransducer(), rf, init, coll, exc)
+    unreduced(transduce(IdentityTransducer(), rf, init, coll, exc))
 
 function Base.showerror(io::IO, opspecs::ReduceOpSpec)
     print(io, "`@reduce(")
