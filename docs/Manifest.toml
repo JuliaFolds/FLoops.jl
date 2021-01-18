@@ -51,9 +51,9 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 
 [[DefineSingletons]]
-git-tree-sha1 = "1a356f194281dff9ef1119faa9125a0d4e210729"
+git-tree-sha1 = "77b4ca280084423b728662fe040e5ff8819347c5"
 uuid = "244e2a9f-e319-4986-a169-4d1fe445cd52"
-version = "0.1.0"
+version = "0.1.1"
 
 [[DelimitedFiles]]
 deps = ["Mmap"]
@@ -245,9 +245,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SplittablesBase]]
 deps = ["Setfield", "Test"]
-git-tree-sha1 = "ab80edcbd61a44a4dc489d06ead964a863c0a898"
+git-tree-sha1 = "e6e5e266aa58c2e419d19e8eccbe6af55d5dc6e1"
 uuid = "171d559e-b47b-412a-8079-5efa626c420e"
-version = "0.1.10"
+version = "0.1.11"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
