@@ -25,8 +25,9 @@ Use [`@reduce`](@ref) for parallel execution:
         @reduce ...
     end
 
-`@floop` can also take an `executor` argument (which should be an
-instance of one of `SequentialEx`, `ThreadedEx` and `DistributedEx`):
+`@floop` can also take an `executor` argument (which should be an instance of
+executor such as `SequentialEx`, `ThreadedEx` and `DistributedEx`) or a
+`nothing` (indicating an appropriate parallel executor):
 
     @floop executor for x in xs, ...
         ...

@@ -34,6 +34,7 @@ using Transducers:
     Map,
     MapCat,
     OnInit,
+    PreferParallel,
     ReduceIf,
     Reduction,
     SequentialEx,

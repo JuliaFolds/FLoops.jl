@@ -126,7 +126,7 @@ end
 
     # Make sure that `executor` is used
     err = try
-        f(nothing)
+        f("string is not executor")
         nothing
     catch err
         @debug("Expected exception from `$f(nothing)`", exception = (err, catch_backtrace()))
@@ -135,7 +135,7 @@ end
     @test err isa MethodError
     # `maybe_set_simd` is happened to be the first function that
     # touches executor:
-    @test err.f === FLoops.maybe_set_simd
+    @test err.f === FLoops._fold
 
     @test f(SequentialEx()) ≛ desired
     @test f(SequentialEx(simd = true)) ≛ desired
