@@ -110,7 +110,7 @@ has_reduce(ex) = on_reduce_op_spec(
     otherwise = _ -> false,
 )
 
-function floop_parallel(ex::Expr, simd, executor = ThreadedEx())
+function floop_parallel(ex::Expr, simd, executor = nothing)
     if !isexpr(ex, :for, 2)
         error("expected a `for` loop; got:\n", ex)
     end
@@ -309,7 +309,8 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
             $whencombine($combine_function, $reducing_function),
             $OnInit(() -> ($(init_exprs...),)),
             $coll,
-            $maybe_set_simd($executor, $Val{$(simd)}()),
+            $executor,
+            $simd,
         )
         $result isa $Return && return $result.value
         $(gotos...)
@@ -320,8 +321,10 @@ end
 
 struct _FLoopInit end
 
-_fold(rf::RF, init, coll, exc::Executor) where {RF} =
-    unreduced(transduce(IdentityTransducer(), rf, init, coll, exc))
+_fold(rf::RF, init, coll, ::Nothing, simd) where {RF} =
+    _fold(rf, init, coll, PreferParallel(), simd)
+_fold(rf::RF, init, coll, exc::Executor, simd) where {RF} =
+    unreduced(transduce(IdentityTransducer(), rf, init, coll, maybe_set_simd(exc, simd)))
 
 function Base.showerror(io::IO, opspecs::ReduceOpSpec)
     print(io, "`@reduce(")
