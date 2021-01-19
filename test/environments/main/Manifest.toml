@@ -81,7 +81,7 @@ version = "0.26.1"
 deps = ["Compat", "FLoopsBase", "JuliaVariables", "MLStyle", "Setfield", "Transducers"]
 path = "../../.."
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
-version = "0.1.6-DEV"
+version = "0.1.7-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
@@ -263,11 +263,11 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Transducers]]
 deps = ["ArgCheck", "BangBang", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "266420fe31e9c86abcf0d4905c75b67dac087c33"
+git-tree-sha1 = "6881d54b5c7235540804dcaf2d7b1320b2832b77"
 repo-rev = "release"
 repo-url = "https://github.com/JuliaFolds/Transducers.jl.git"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.54"
+version = "0.4.55"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
