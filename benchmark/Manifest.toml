@@ -235,9 +235,9 @@ uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[SplittablesBase]]
 deps = ["Setfield", "Test"]
-git-tree-sha1 = "e6e5e266aa58c2e419d19e8eccbe6af55d5dc6e1"
+git-tree-sha1 = "c2b4f3cd29827787a5f61afe12ea13222197ab98"
 uuid = "171d559e-b47b-412a-8079-5efa626c420e"
-version = "0.1.11"
+version = "0.1.12"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
