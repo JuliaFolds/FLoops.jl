@@ -2,7 +2,7 @@
 
 Simply wrap a `for` loop and its initialization part by `@floop`:
 
-```julia
+```jldoctest
 julia> using FLoops  # exports @floop macro
 
 julia> @floop begin
@@ -18,7 +18,11 @@ julia> @floop begin
 When accumulating into pre-defined variables, simply list them between
 `begin` and `for`.  `@floop` also works with multiple accumulators.
 
-```julia
+```jldoctest
+julia> using FLoops
+
+julia> s = 6;
+
 julia> @floop begin
            s
            p = 1
@@ -37,7 +41,9 @@ julia> p
 The `begin ... end` block can be omitted if the `for` loop does not
 require local variables to carry the state:
 
-```julia
+```jldoctest
+julia> using FLoops
+
 julia> @floop for x in 1:3
            @show x
        end
