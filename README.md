@@ -80,7 +80,7 @@ For more examples, see
   restarting `julia` using the `basesize`
   option](https://juliafolds.github.io/data-parallelism/howto/faq/#set-nthreads-at-run-time).
 
-A relative disadvantage may be that `@floop` is much newer than
+The relative disadvantages may be that `@floop` is much newer than
 `Threads.@threads` and has much more flexible internals. These points can
 contribute to undiscovered bugs.
 
