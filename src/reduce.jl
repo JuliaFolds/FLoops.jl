@@ -222,6 +222,7 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
     inputs_symbols = Symbol[]
     init_exprs = []
     combine_bodies = []
+    all_rf_inits = []
     all_rf_accs = []
     all_rf_inputs = []
     body1 = on_reduce_op_spec_reconstructing(body0) do opspecs
@@ -258,6 +259,7 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
             updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
         end
         push!(init_exprs, inits === nothing ? _FLoopInit() : Expr(:tuple, inits...))
+        push!(all_rf_inits, inits)
         push!(all_rf_accs, accs)
         push!(all_rf_inputs, inputs)
         verify_unique_symbols(accs, "accumulator")
@@ -293,14 +295,26 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
 
     @gensym reducing_function combine_function result
 
-    unpackers = map(enumerate(all_rf_accs)) do (i, accs)
+    unpackers = map(enumerate(zip(all_rf_accs, all_rf_inits))) do (i, (accs, inits))
         @gensym grouped_accs
-        quote
-            $grouped_accs = $result[$i]
-            # Assign to accumulator only if it is updated at least once:
-            if $grouped_accs isa $_FLoopInit
-            else
-                ($(accs...),) = $grouped_accs
+        if inits === nothing
+            quote
+                $grouped_accs = $result[$i]
+                # Assign to accumulator only if it is updated at least once:
+                if $grouped_accs isa $_FLoopInit
+                else
+                    ($(accs...),) = $grouped_accs
+                end
+            end
+        else
+            quote
+                $grouped_accs = $result[$i]
+                ($(accs...),) = if $grouped_accs isa $_FLoopInit
+                    $unreachable_floop()
+                    # ($(inits...),)
+                else
+                    $grouped_accs
+                end
             end
         end
     end
@@ -339,6 +353,8 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
 end
 
 struct _FLoopInit end
+
+@noinline unreachable_floop() = error("unrechable reached (FLoops.jl bug)")
 
 @inline _fold(rf::RF, init, coll, ::Nothing, simd) where {RF} =
     _fold(rf, init, coll, PreferParallel(), simd)
