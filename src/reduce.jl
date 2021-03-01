@@ -310,7 +310,7 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
             $OnInit(() -> ($(init_exprs...),)),
             $coll,
             $executor,
-            $simd,
+            $(Val(simd)),
         )
         $result isa $Return && return $result.value
         $(gotos...)
@@ -321,9 +321,9 @@ end
 
 struct _FLoopInit end
 
-_fold(rf::RF, init, coll, ::Nothing, simd) where {RF} =
+@inline _fold(rf::RF, init, coll, ::Nothing, simd) where {RF} =
     _fold(rf, init, coll, PreferParallel(), simd)
-_fold(rf::RF, init, coll, exc::Executor, simd) where {RF} =
+@inline _fold(rf::RF, init, coll, exc::Executor, simd) where {RF} =
     unreduced(transduce(IdentityTransducer(), rf, init, coll, maybe_set_simd(exc, simd)))
 
 function Base.showerror(io::IO, opspecs::ReduceOpSpec)
