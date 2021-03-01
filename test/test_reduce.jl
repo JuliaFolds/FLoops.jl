@@ -85,6 +85,33 @@ end
     @test (vmax, imax) == (3, 4)
 end
 
+@testset "non-unique arguments" begin
+    @testset "`@reduce(a += x, b *= x)`" begin
+        xs = 1:10
+        @floop for x in xs
+            @reduce(a += x, b *= x)
+        end
+        @test (sum(xs), prod(xs)) == (a, b)
+    end
+
+    @testset "`@reduce(a = 0 + x, b = 1 * x)`" begin
+        xs = 1:10
+        @floop for x in xs
+            @reduce(a = 0 + x, b = 1 * x)
+        end
+        @test (sum(xs), prod(xs)) == (a, b)
+    end
+
+    @testset "`@reduce a = 0 + x; @reduce b = 1 * x`" begin
+        xs = 1:10
+        @floop for x in xs
+            @reduce a = 0 + x
+            @reduce b = 1 * x
+        end
+        @test (sum(xs), prod(xs)) == (a, b)
+    end
+end
+
 @testset "unprocessed @reduce" begin
     err = try
         @reduce(s += y, p *= y)

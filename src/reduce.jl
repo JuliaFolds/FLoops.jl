@@ -200,6 +200,23 @@ function extract_pre_updates(raw_inputs)
     return (inputs, pre_updates)
 end
 
+function uniquify_inputs(inputs)
+    uniquified = empty(inputs)
+    pre_updates = Expr[]
+    seen = Set{eltype(inputs)}()
+    for x in inputs
+        if x in seen 
+            y = gensym(x)
+            push!(pre_updates, :($y = $x))
+        else
+            push!(seen, x)
+            y = x
+        end
+        push!(uniquified, y)
+    end
+    return uniquified, pre_updates
+end
+
 function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
     accs_symbols = Symbol[]
     inputs_symbols = Symbol[]
@@ -236,6 +253,8 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
             else
                 error(join(vcat(["unsupported:"], opspecs), "\n"))
             end
+            inputs, pre_updates2 = uniquify_inputs(inputs)
+            append!(pre_updates, pre_updates2)
             updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
         end
         push!(init_exprs, inits === nothing ? _FLoopInit() : Expr(:tuple, inits...))
