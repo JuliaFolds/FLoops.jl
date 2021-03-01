@@ -3,6 +3,19 @@ firstsomething(f, xs) = foldl(right, xs |> Map(f) |> ReduceIf(!isnothing); init 
 ifnothing(f) = x -> x === nothing ? f() : x
 donothing(_...) = nothing
 
+@inline _any() = false
+@inline _any(x) = x
+@inline _any(x, xs...) = x || _any(xs...)
+@inline _any(a, b) = a || b
+@inline _any(a, b, c) = a || b || c
+@inline _any(a, b, c, d) = a || b || c || d
+@inline _any(a, b, c, d, e) = a || b || c || d || e
+@inline _any(a, b, c, d, e, f) = a || b || c || d || e || f
+@inline _any(a, b, c, d, e, f, g) = a || b || c || d || e || f || g
+@inline _any(a, b, c, d, e, f, g, h) = a || b || c || d || e || f || g || h
+@inline _any(a, b, c, d, e, f, g, h, i) = a || b || c || d || e || f || g || h || i
+@inline _any(a, b, c, d, e, f, g, h, i, j) = a || b || c || d || e || f || g || h || i || j
+
 function flattenblockargs(ex)
     @match ex begin
         Expr(:block, args...) => mapcat(flattenblockargs, args)

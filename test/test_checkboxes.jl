@@ -4,6 +4,7 @@ using FLoops:
     _box_detection_works,
     _make_closure_with_a_box,
     _make_closure_without_a_box,
+    has_boxed_variables,
     verify_no_boxes,
     HasBoxedVariableError
 using Test
@@ -43,6 +44,45 @@ end
         @test occursin(r"\b a \b"x, msg)
         @test occursin(r"\b b \b"x, msg)
     end
+end
+
+function with_box_1()
+    a = 0
+    function closure()
+        a += 1
+    end
+    Val(has_boxed_variables(closure))
+end
+
+function with_box_3()
+    (a, b, c) = (1, 2, 3)
+    function closure()
+        c = a + b + c
+    end
+    Val(has_boxed_variables(closure))
+end
+
+function with_box_7()
+    (a, b, c, d, e, f, g) = (1, 2, 3, 4, 5, 6, 7)
+    function closure()
+        g = a + b + c + d + e + f + g
+    end
+    Val(has_boxed_variables(closure))
+end
+
+function with_box_10()
+    (a, b, c, d, e, f, g, h, i, j) = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    function closure()
+        j = a + b + c + d + e + f + g + h + i + j
+    end
+    Val(has_boxed_variables(closure))
+end
+
+@testset "Inferrability" begin
+    @test @inferred(with_box_1()) == Val(true)
+    @test @inferred(with_box_3()) == Val(true)
+    @test @inferred(with_box_7()) == Val(true)
+    @test @inferred(with_box_10()) == Val(true)
 end
 
 end  # module
