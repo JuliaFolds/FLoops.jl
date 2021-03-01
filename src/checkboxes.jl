@@ -1,5 +1,5 @@
 has_boxed_variables(f::F) where {F} =
-    any(ntuple(i -> fieldtype(typeof(f), i) <: Core.Box, Val(nfields(f))))
+    _any(ntuple(i -> fieldtype(typeof(f), i) <: Core.Box, Val(nfields(f)))...)
 
 function verify_no_boxes(f::F) where {F}
     has_boxed_variables(f) && throw(HasBoxedVariableError(f))
