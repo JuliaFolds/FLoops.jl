@@ -85,6 +85,56 @@ end
     @test (vmax, imax) == (3, 4)
 end
 
+@testset "non-unique arguments" begin
+    @testset "`@reduce(a += x, b *= x)`" begin
+        xs = 1:10
+        @floop for x in xs
+            @reduce(a += x, b *= x)
+        end
+        @test (sum(xs), prod(xs)) == (a, b)
+    end
+
+    @testset "`@reduce(a = 0 + x, b = 1 * x)`" begin
+        xs = 1:10
+        @floop for x in xs
+            @reduce(a = 0 + x, b = 1 * x)
+        end
+        @test (sum(xs), prod(xs)) == (a, b)
+    end
+
+    @testset "`@reduce a = 0 + x; @reduce b = 1 * x`" begin
+        xs = 1:10
+        @floop for x in xs
+            @reduce a = 0 + x
+            @reduce b = 1 * x
+        end
+        @test (sum(xs), prod(xs)) == (a, b)
+    end
+end
+
+
+function floop_with_init_binops(xs, ex = nothing)
+    @floop ex for x in xs
+        @reduce(s = 0 + x, c = 0 + 1)
+    end
+    return f() = (s, c)
+end
+
+function two_floops(xs, ex = nothing)
+    @floop ex for x in xs
+        @reduce(s = 0 + x, c = 0 + 1)
+    end
+    @floop ex for x in xs
+        @reduce(v = 0 + (x - (s / c))^2)
+    end
+    return v / c
+end
+
+@testset "empty" begin
+    @test !FLoops.has_boxed_variables(floop_with_init_binops(1:10))
+    @test two_floops(1:8) == 5.25
+end
+
 @testset "unprocessed @reduce" begin
     err = try
         @reduce(s += y, p *= y)
