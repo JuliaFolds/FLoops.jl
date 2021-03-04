@@ -37,16 +37,18 @@ executor such as `SequentialEx`, `ThreadedEx` and `DistributedEx`) or a
 See the module docstring of [`Floops`](@ref) for examples.
 """
 macro floop(ex)
+    ctx = MacroContext(__source__, __module__)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    has_reduce(exx) && return esc(floop_parallel(exx, simd))
+    has_reduce(exx) && return esc(floop_parallel(ctx, exx, simd))
     esc(floop(exx, simd))
 end
 
 macro floop(executor, ex)
+    ctx = MacroContext(__source__, __module__)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    esc(floop_parallel(exx, simd, executor))
+    esc(floop_parallel(ctx, exx, simd, executor))
 end
 
 struct Return{T}
