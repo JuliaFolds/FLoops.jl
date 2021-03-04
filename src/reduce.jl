@@ -110,7 +110,7 @@ has_reduce(ex) = on_reduce_op_spec(
     otherwise = _ -> false,
 )
 
-function floop_parallel(ex::Expr, simd, executor = nothing)
+function floop_parallel(ctx::MacroContext, ex::Expr, simd, executor = nothing)
     if !isexpr(ex, :for, 2)
         error("expected a `for` loop; got:\n", ex)
     end
@@ -118,10 +118,10 @@ function floop_parallel(ex::Expr, simd, executor = nothing)
     parallel_loop_ex = @match iterspec begin
         Expr(:block, loop_axes...) => begin
             rf_arg, coll = transform_multi_loop(loop_axes)
-            as_parallel_loop(rf_arg, coll, body, simd, executor)
+            as_parallel_loop(ctx, rf_arg, coll, body, simd, executor)
         end
         Expr(:(=), rf_arg, coll) => begin
-            as_parallel_loop(rf_arg, coll, body, simd, executor)
+            as_parallel_loop(ctx, rf_arg, coll, body, simd, executor)
         end
     end
     return parallel_loop_ex
@@ -217,7 +217,7 @@ function uniquify_inputs(inputs)
     return uniquified, pre_updates
 end
 
-function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
+function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, executor)
     accs_symbols = Symbol[]
     inputs_symbols = Symbol[]
     init_exprs = []
@@ -294,6 +294,11 @@ function as_parallel_loop(rf_arg, coll, body0::Expr, simd, executor)
     body2, info = transform_loop_body(body1, accs_symbols)
 
     @gensym reducing_function combine_function result
+    if ctx.module_ === Main
+        # Ref: https://github.com/JuliaLang/julia/issues/39895
+        reducing_function = Symbol(:__, reducing_function)
+        combine_function = Symbol(:__, combine_function)
+    end
 
     unpackers = map(enumerate(zip(all_rf_accs, all_rf_inits))) do (i, (accs, inits))
         @gensym grouped_accs
