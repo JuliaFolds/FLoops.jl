@@ -12,10 +12,10 @@ FLoops.@floop
 FLoops.@reduce
 ```
 
-## `@private`
+## `@init`
 
 ```@docs
-FLoops.@private
+FLoops.@init
 ```
 
 ## [`SequentialEx`, `ThreadedEx` and `DistributedEx` executors](@id executor)

@@ -53,13 +53,13 @@ end
 # ## [Data race-free reuse of mutable objects using private variables](@id private-variables)
 #
 # To avoid allocation for each iteration, it is useful to pre-allocate mutable
-# objects and reuse them. We can use [`@private`](@ref) macro to do this in a
+# objects and reuse them. We can use [`@init`](@ref) macro to do this in a
 # data race-free ("thread-safe") manner:
 
 @test begin
     local ys  # hide
     @floop for x in 1:10
-        @private xs = Vector{typeof(x)}(undef, 3)
+        @init xs = Vector{typeof(x)}(undef, 3)
         xs .= (x, 2x, 3x)
         @reduce() do (ys = zeros(3); xs)
             ys .+= xs
@@ -82,7 +82,7 @@ MersenneTwister()  # the first invocation of `MersenneTwister` is not thread-saf
 
 @dedent let
     @floop for _ in 1:10
-        @private rng = MersenneTwister()
+        @init rng = MersenneTwister()
         @reduce(s += rand(rng))
     end
 end

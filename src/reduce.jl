@@ -88,7 +88,7 @@ struct ReduceOpSpec
 end
 
 """
-    @private begin
+    @init begin
         pv₁ = init₁
         ...
         pvₙ = initₙ
@@ -97,23 +97,23 @@ end
 Initialize private variables `pvᵢ` with initializer expression `initᵢ` for
 each task in a data race-free manner.
 """
-macro private(ex)
-    :(throw($(privatespec(ex))))
+macro init(ex)
+    :(throw($(initspec(ex))))
 end
 
-struct PrivateSpec
+struct InitSpec
     expr::Expr
     lhs::Vector{Union{Symbol,Expr}}
 end
 
-privatespec(@nospecialize x) = invalid_at_private(x)
-privatespec(ex::Expr) = PrivateSpec(ex, collect_lhs!(Union{Symbol,Expr}[], ex))
+initspec(@nospecialize x) = invalid_at_init(x)
+initspec(ex::Expr) = InitSpec(ex, collect_lhs!(Union{Symbol,Expr}[], ex))
 
-invalid_at_private(@nospecialize ex) =
-    error("`@private` requires an assignment or a sequence of assignments; got:\n", ex)
+invalid_at_init(@nospecialize ex) =
+    error("`@init` requires an assignment or a sequence of assignments; got:\n", ex)
 
 # TODO: merge with `assigned_vars`?
-collect_lhs!(_, @nospecialize(x)) = invalid_at_private(x)
+collect_lhs!(_, @nospecialize(x)) = invalid_at_init(x)
 collect_lhs!(lhs, ::LineNumberNode) = lhs
 function collect_lhs!(lhs, ex::Expr)
     @match ex begin
@@ -124,7 +124,7 @@ function collect_lhs!(lhs, ex::Expr)
             end
         end
         # TODO: should we support other things, like side effects, here?
-        _ => invalid_at_private(ex)
+        _ => invalid_at_init(ex)
     end
     return lhs
 end
@@ -132,18 +132,18 @@ end
 function unpack_kwargs(;
     otherwise = donothing,
     on_expr = otherwise,
-    on_private = otherwise,
+    on_init = otherwise,
     kwargs...
 )
     @assert isempty(kwargs)
-    return (otherwise, on_expr, on_private)
+    return (otherwise, on_expr, on_init)
 end
 
 function on_reduce_op_spec(on_spec, ex; kwargs...)
-    (otherwise, on_expr, on_private) = unpack_kwargs(; kwargs...)
+    (otherwise, on_expr, on_init) = unpack_kwargs(; kwargs...)
     @match ex begin
-        Expr(:call, throw_1, spec::ReduceOpSpec) => on_spec(spec.args)
-        Expr(:call, throw_2, spec::PrivateSpec) => on_private(spec)
+        Expr(:call, throw′, spec::ReduceOpSpec) => on_spec(spec.args)
+        Expr(:call, throw′, spec::InitSpec) => on_init(spec)
         Expr(head, args...) => begin
             new_args = map(args) do x
                 on_reduce_op_spec(on_spec, x; kwargs...)
@@ -158,13 +158,13 @@ on_reduce_op_spec_reconstructing(
     on_spec,
     ex;
     otherwise = identity,
-    on_private = otherwise,
+    on_init = otherwise,
 ) = on_reduce_op_spec(
     on_spec,
     ex;
     on_expr = Expr,
     otherwise = otherwise,
-    on_private = on_private,
+    on_init = on_init,
 )
 
 has_reduce(ex) = on_reduce_op_spec(
@@ -310,9 +310,9 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         check_num_states(all_rf_inputs)
     end
 
-    function on_private(spec::PrivateSpec)
-        @gensym grouped_private_states
-        push!(accs_symbols, grouped_private_states)
+    function on_init(spec::InitSpec)
+        @gensym grouped_init_states
+        push!(accs_symbols, grouped_init_states)
         push!(inputs_symbols, :_)
 
         accs = spec.lhs
@@ -328,16 +328,16 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # TODO: maybe hoist out the invocation of `rhs` to `OnInit`?
         initializer = spec.expr
         return quote
-            if $grouped_private_states isa $_FLoopInit
-                $initializer  # the expression from `@private $initializer`
+            if $grouped_init_states isa $_FLoopInit
+                $initializer  # the expression from `@init $initializer`
             else
                 # After the initialization, just carry it over to the next iteration:
-                ($(accs...),) = $grouped_private_states
+                ($(accs...),) = $grouped_init_states
             end
         end
     end
 
-    body1 = on_reduce_op_spec_reconstructing(body0; on_private = on_private) do opspecs
+    body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do opspecs
         @gensym grouped_accs grouped_inputs
         push!(accs_symbols, grouped_accs)
         push!(inputs_symbols, grouped_inputs)
@@ -485,7 +485,7 @@ function Base.showerror(io::IO, opspecs::ReduceOpSpec)
     print(io, ")` used outside `@floop`")
 end
 
-function Base.showerror(io::IO, spec::PrivateSpec)
+function Base.showerror(io::IO, spec::InitSpec)
     ex = spec.expr
-    print(io, "`@private", ex, "` used outside `@floop`")
+    print(io, "`@init", ex, "` used outside `@floop`")
 end

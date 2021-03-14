@@ -137,7 +137,7 @@ end
 
 function sum_halved_arrays(arrays, ex = nothing)
     @floop ex for x in arrays
-        @private y = zero(x)
+        @init y = zero(x)
         y .= x .÷ 2
         @reduce(s = 0 + sum(y))
         # @reduce(s = zero(y) .+ y)  # TODO
@@ -145,7 +145,7 @@ function sum_halved_arrays(arrays, ex = nothing)
     return s
 end
 
-@testset "@private" begin
+@testset "@init" begin
     arrays = [[1, 2], [3, 4], [5, 6], [7, 8]]
     desired = sum(sum(x .÷ 2) for x in arrays)
     @test sum_halved_arrays(arrays) == desired
@@ -163,14 +163,14 @@ end
     @test occursin("used outside `@floop`", sprint(showerror, err))
 end
 
-@testset "unprocessed @private" begin
+@testset "unprocessed @init" begin
     err = try
-        @private x = 0
+        @init x = 0
         nothing
     catch err
         err
     end
-    @test err isa FLoops.PrivateSpec
+    @test err isa FLoops.InitSpec
     @test occursin("used outside `@floop`", sprint(showerror, err))
 end
 
