@@ -245,6 +245,29 @@ end
     @test occursin("used outside `@floop`", sprint(showerror, err))
 end
 
+@testset "invalid @init" begin
+    @testset "toplevel" begin
+        err = try
+            @eval @init(a)
+            nothing
+        catch err
+            err
+        end
+        @test err isa Exception
+        @test occursin("requires an assignment", sprint(showerror, err))
+    end
+    @testset "non assignment" begin
+        err = try
+            @eval @init a += 1
+            nothing
+        catch err
+            err
+        end
+        @test err isa Exception
+        @test occursin("requires an assignment", sprint(showerror, err))
+    end
+end
+
 @testset "duplicated accumulators" begin
     err = try
         @eval @macroexpand @floop for x in xs
