@@ -52,6 +52,8 @@ makedocs(;
     format = Documenter.HTML(),
     modules = [FLoops],
     pages = PAGES,
+    checkdocs = :exports,
+    strict = lowercase(get(ENV, "CI", "false")) == "true",
 )
 
 deploydocs(; repo = "github.com/JuliaFolds/FLoops.jl", push_preview = true)

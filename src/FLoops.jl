@@ -12,6 +12,11 @@ module FLoops
     )
     doc = replace(
         doc,
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/#tutorials-executor" =>
+            "@ref tutorials-executor",
+    )
+    doc = replace(
+        doc,
         "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/" =>
             "@ref tutorials-parallel",
     )

@@ -90,4 +90,4 @@ contribute to undiscovered bugs.
 `foldl` defined by
 [Transducers.jl](https://github.com/JuliaFolds/Transducers.jl).  Unlike
 `foldl` defined in `Base`, `foldl` defined by Transducers.jl is
-[powerful enough to cover the `for` loop semantics and more](https://tkf.github.io/Transducers.jl/dev/manual/#Base.foreach).
+[powerful enough to cover the `for` loop semantics and more](https://juliafolds.github.io/Transducers.jl/dev/reference/manual/#Base.foreach).
