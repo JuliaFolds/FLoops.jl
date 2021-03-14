@@ -292,7 +292,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 
     function check_invariance()
         num_state_groups = length(accs_symbols)
-        @assert length((inputs_symbols)) == num_state_groups
+        @assert length(inputs_symbols) == num_state_groups
         @assert length(init_exprs) == num_state_groups
         @assert length(all_rf_inits) == num_state_groups
         @assert length(all_rf_accs) == num_state_groups
