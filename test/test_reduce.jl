@@ -145,11 +145,43 @@ function sum_halved_arrays(arrays, ex = nothing)
     return s
 end
 
+function two_inits(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @init begin
+            y = zero(x)
+            z = similar(y)
+        end
+        y .= x .÷ 2
+        z .= 2 .* y
+        r = sum(a * b for (a, b) in zip(y, z))
+        @reduce(s = 0 + r)
+    end
+    return s
+end
+
+function two_inits2(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @init y = zero(x)
+        @init z = similar(y)
+        y .= x .÷ 2
+        z .= 2 .* y
+        r = sum(a * b for (a, b) in zip(y, z))
+        @reduce(s = 0 + r)
+    end
+    return s
+end
+
 @testset "@init" begin
     arrays = [[1, 2], [3, 4], [5, 6], [7, 8]]
     desired = sum(sum(x .÷ 2) for x in arrays)
     @test sum_halved_arrays(arrays) == desired
     @test sum_halved_arrays(arrays, SequentialEx()) == desired
+
+    desired = sum((c ÷ 2) * (2 * (c ÷ 2)) for x in arrays for c in x)
+    @test two_inits(arrays) == desired
+    @test two_inits(arrays, SequentialEx()) == desired
+    @test two_inits2(arrays) == desired
+    @test two_inits2(arrays, SequentialEx()) == desired
 end
 
 @testset "unprocessed @reduce" begin
