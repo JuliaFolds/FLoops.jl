@@ -167,9 +167,10 @@ on_reduce_op_spec_reconstructing(
     on_init = on_init,
 )
 
-has_reduce(ex) = on_reduce_op_spec(
+is_parallel(ex) = on_reduce_op_spec(
     _ -> true,
     ex;
+    on_init = _ -> true,
     on_expr = (_, args...) -> any(args),
     otherwise = _ -> false,
 )
