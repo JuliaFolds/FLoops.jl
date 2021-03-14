@@ -87,12 +87,66 @@ struct ReduceOpSpec
     args::Vector{Any}
 end
 
-function on_reduce_op_spec(on_spec, ex; on_expr = donothing, otherwise = donothing)
+"""
+    @init begin
+        pv₁ = init₁
+        ...
+        pvₙ = initₙ
+    end
+
+Initialize private variables `pvᵢ` with initializer expression `initᵢ` for
+each task. This can be used for mutating objects in a data race-free manner.
+"""
+macro init(ex)
+    :(throw($(initspec(ex))))
+end
+
+struct InitSpec
+    expr::Expr
+    lhs::Vector{Union{Symbol,Expr}}
+end
+
+initspec(@nospecialize x) = invalid_at_init(x)
+initspec(ex::Expr) = InitSpec(ex, collect_lhs!(Union{Symbol,Expr}[], ex))
+
+invalid_at_init(@nospecialize ex) =
+    error("`@init` requires an assignment or a sequence of assignments; got:\n", ex)
+
+# TODO: merge with `assigned_vars`?
+collect_lhs!(_, @nospecialize(x)) = invalid_at_init(x)
+collect_lhs!(lhs, ::LineNumberNode) = lhs
+function collect_lhs!(lhs, ex::Expr)
+    @match ex begin
+        Expr(:(=), x::Union{Symbol,Expr}, _) => push!(lhs, x)
+        Expr(:block, args...) => begin
+            for a in args
+                collect_lhs!(lhs, a)
+            end
+        end
+        # TODO: should we support other things, like side effects, here?
+        _ => invalid_at_init(ex)
+    end
+    return lhs
+end
+
+function unpack_kwargs(;
+    otherwise = donothing,
+    on_expr = otherwise,
+    on_init = otherwise,
+    kwargs...
+)
+    @assert isempty(kwargs)
+    return (otherwise, on_expr, on_init)
+end
+
+function on_reduce_op_spec(on_spec, ex; kwargs...)
+    (otherwise, on_expr, on_init) = unpack_kwargs(; kwargs...)
     @match ex begin
         Expr(:call, throw′, spec::ReduceOpSpec) => on_spec(spec.args)
+        Expr(:call, throw′, spec::InitSpec) => on_init(spec)
         Expr(head, args...) => begin
             new_args = map(args) do x
-                on_reduce_op_spec(on_spec, x; on_expr = on_expr, otherwise = otherwise)
+                on_reduce_op_spec(on_spec, x; kwargs...)
             end
             on_expr(head, new_args...)
         end
@@ -100,12 +154,23 @@ function on_reduce_op_spec(on_spec, ex; on_expr = donothing, otherwise = donothi
     end
 end
 
-on_reduce_op_spec_reconstructing(on_spec, ex) =
-    on_reduce_op_spec(on_spec, ex; on_expr = Expr, otherwise = identity)
+on_reduce_op_spec_reconstructing(
+    on_spec,
+    ex;
+    otherwise = identity,
+    on_init = otherwise,
+) = on_reduce_op_spec(
+    on_spec,
+    ex;
+    on_expr = Expr,
+    otherwise = otherwise,
+    on_init = on_init,
+)
 
-has_reduce(ex) = on_reduce_op_spec(
+is_parallel(ex) = on_reduce_op_spec(
     _ -> true,
     ex;
+    on_init = _ -> true,
     on_expr = (_, args...) -> any(args),
     otherwise = _ -> false,
 )
@@ -225,7 +290,56 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     all_rf_inits = []
     all_rf_accs = []
     all_rf_inputs = []
-    body1 = on_reduce_op_spec_reconstructing(body0) do opspecs
+
+    function check_invariance()
+        num_state_groups = length(accs_symbols)
+        @assert length(inputs_symbols) == num_state_groups
+        @assert length(init_exprs) == num_state_groups
+        @assert length(all_rf_inits) == num_state_groups
+        @assert length(all_rf_accs) == num_state_groups
+        @assert length(all_rf_inputs) == num_state_groups
+        @assert length(combine_bodies) == num_state_groups
+
+        nums_grouped_states = map(length, all_rf_accs)
+        function check_num_states(xs)
+            for (x, n) in zip(xs, nums_grouped_states)
+                x === nothing && continue
+                @assert length(x) == n
+            end
+        end
+        check_num_states(all_rf_inits)
+        check_num_states(all_rf_inputs)
+    end
+
+    function on_init(spec::InitSpec)
+        @gensym grouped_private_states
+        push!(accs_symbols, grouped_private_states)
+        push!(inputs_symbols, :_)
+
+        accs = spec.lhs
+        push!(init_exprs, _FLoopInit())
+        push!(all_rf_inits, nothing)
+        push!(all_rf_accs, accs)
+        push!(all_rf_inputs, nothing)
+        verify_unique_symbols(accs, "private")
+
+        # The corresponding combine function is "keep left" (i.e., do nothing):
+        push!(combine_bodies, nothing)
+
+        # TODO: maybe hoist out the invocation of `rhs` to `OnInit`?
+        initializer = spec.expr
+        return quote
+            if $grouped_private_states isa $_FLoopInit
+                $initializer  # the expression from `@init $initializer`
+                $grouped_private_states = ($(accs...),)  # reuse it next time
+            else
+                # After the initialization, just carry it over to the next iteration:
+                ($(accs...),) = $grouped_private_states
+            end
+        end
+    end
+
+    body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do opspecs
         @gensym grouped_accs grouped_inputs
         push!(accs_symbols, grouped_accs)
         push!(inputs_symbols, grouped_inputs)
@@ -290,6 +404,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         push!(combine_bodies, combine_body)
         return rf_body_with_init(pre_updates)
     end
+    check_invariance()
 
     body2, info = transform_loop_body(body1, accs_symbols)
 
@@ -325,7 +440,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
     unpack_state = Expr(:block, unpackers...)
     gotos = gotos_for(info.external_labels, unpack_state, result)
-    mkdecl(x) = x |> Cat() |> Map(a -> :(local $a)) |> collect
+    mkdecl(x) = x |> NotA(Nothing) |> Cat() |> Map(a -> :(local $a)) |> collect
     accs_declarations = mkdecl(all_rf_accs)
     inputs_declarations = mkdecl(all_rf_inputs)
 
@@ -370,4 +485,9 @@ function Base.showerror(io::IO, opspecs::ReduceOpSpec)
     print(io, "`@reduce(")
     join(io, opspecs.args, ", ")
     print(io, ")` used outside `@floop`")
+end
+
+function Base.showerror(io::IO, spec::InitSpec)
+    ex = spec.expr
+    print(io, "`@init", ex, "` used outside `@floop`")
 end
