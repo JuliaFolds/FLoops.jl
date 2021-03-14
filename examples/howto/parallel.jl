@@ -25,6 +25,9 @@ end == [55, 110, 165]
 # race because each basecase "owns" such mutable objects.  However, it
 # is incorrect to mutate objects created outside `init` expressions.
 #
+# See also: [What is the difference of `@reduce` and `@init` to the approach
+# using `state[threadid()]`?](@ref faq-state-threadid)
+#
 # !!! note
 #
 #     Technically, it is correct to mutate objects in the loop body if
@@ -67,6 +70,9 @@ end
     end
     ys
 end == [55, 110, 165]
+
+# See also: [What is the difference of `@reduce` and `@init` to the approach
+# using `state[threadid()]`?](@ref faq-state-threadid)
 
 # ## Efficient and reproducible usage patterns of random number generators
 #

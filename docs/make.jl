@@ -22,7 +22,10 @@ PAGES = [
         # "Sequential loop" => "reference/sequential.md",
         "Parallelizable reduction (WIP)" => "reference/reduction.md",
     ],
-    # "Explanation" => ...,
+    "Explanation" => [
+        "FAQ" => "explanation/faq.md",
+        # TODO: discuss design rationales?
+    ],
 ]
 
 let example_dir = joinpath(dirname(@__DIR__), "examples")
