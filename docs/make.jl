@@ -52,6 +52,7 @@ makedocs(;
     format = Documenter.HTML(),
     modules = [FLoops],
     pages = PAGES,
+    checkdocs = :exports,
     strict = lowercase(get(ENV, "CI", "false")) == "true",
 )
 

@@ -34,7 +34,7 @@ executor such as `SequentialEx`, `ThreadedEx` and `DistributedEx`) or a
         @reduce ...
     end
 
-See the module docstring of [`Floops`](@ref) for examples.
+See the module docstring of [`FLoops`](@ref) for examples.
 """
 macro floop(ex)
     ctx = MacroContext(__source__, __module__)
