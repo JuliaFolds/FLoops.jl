@@ -184,6 +184,34 @@ end
     @test two_inits2(arrays, SequentialEx()) == desired
 end
 
+function probe_init(xs, ex = nothing)
+    counter = zeros(Int, Threads.nthreads())
+    lck = ReentrantLock()
+    function record!()
+        lock(lck) do
+            counter[Threads.threadid()] += 1
+        end
+    end
+    @floop ex for x in xs
+        @init y = begin
+            record!()
+            nothing
+        end
+    end
+    return counter
+end
+
+@testset "@init called once" begin
+    @testset "default" begin
+        counter = probe_init(1:(Threads.nthreads() * 100))
+        @test sum(counter) == Threads.nthreads()
+    end
+    @testset "SequentialEx" begin
+        counter = probe_init(1:(Threads.nthreads() * 100), SequentialEx())
+        @test sum(counter) == 1
+    end
+end
+
 @testset "unprocessed @reduce" begin
     err = try
         @reduce(s += y, p *= y)
