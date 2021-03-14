@@ -95,7 +95,7 @@ end
     end
 
 Initialize private variables `pvᵢ` with initializer expression `initᵢ` for
-each task in a data race-free manner.
+each task. This can be used for mutating objects in a data race-free manner.
 """
 macro init(ex)
     :(throw($(initspec(ex))))

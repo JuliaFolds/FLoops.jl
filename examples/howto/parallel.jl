@@ -119,6 +119,8 @@ end
     end
 end
 
+# Note that the above pattern can also be used with `@threads for` loop.
+#
 # Another approach is to use a counter-based RNG as illustrated in
 # [Monte-Carlo π · FoldsCUDA](https://juliafolds.github.io/FoldsCUDA.jl/dev/examples/monte_carlo_pi/).
 # This approach works both on CPU and GPU.
