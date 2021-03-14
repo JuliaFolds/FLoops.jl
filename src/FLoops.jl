@@ -18,7 +18,7 @@ module FLoops
     doc
 end FLoops
 
-export @floop, @reduce, DistributedEx, SequentialEx, ThreadedEx
+export @floop, @private, @reduce, DistributedEx, SequentialEx, ThreadedEx
 
 using Base.Meta: isexpr
 using FLoopsBase: EXTRA_STATE_VARIABLES
@@ -33,6 +33,7 @@ using Transducers:
     IdentityTransducer,
     Map,
     MapCat,
+    NotA,
     OnInit,
     PreferParallel,
     ReduceIf,

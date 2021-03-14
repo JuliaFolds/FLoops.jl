@@ -135,6 +135,23 @@ end
     @test two_floops(1:8) == 5.25
 end
 
+function sum_halved_arrays(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @private y = zero(x)
+        y .= x .÷ 2
+        @reduce(s = 0 + sum(y))
+        # @reduce(s = zero(y) .+ y)  # TODO
+    end
+    return s
+end
+
+@testset "@private" begin
+    arrays = [[1, 2], [3, 4], [5, 6], [7, 8]]
+    desired = sum(sum(x .÷ 2) for x in arrays)
+    @test sum_halved_arrays(arrays) == desired
+    @test sum_halved_arrays(arrays, SequentialEx()) == desired
+end
+
 @testset "unprocessed @reduce" begin
     err = try
         @reduce(s += y, p *= y)
@@ -143,6 +160,17 @@ end
         err
     end
     @test err isa FLoops.ReduceOpSpec
+    @test occursin("used outside `@floop`", sprint(showerror, err))
+end
+
+@testset "unprocessed @private" begin
+    err = try
+        @private x = 0
+        nothing
+    catch err
+        err
+    end
+    @test err isa FLoops.PrivateSpec
     @test occursin("used outside `@floop`", sprint(showerror, err))
 end
 
