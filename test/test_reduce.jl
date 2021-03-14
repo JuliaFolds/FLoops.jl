@@ -184,6 +184,17 @@ end
     @test two_inits2(arrays, SequentialEx()) == desired
 end
 
+@testset "just @init" begin
+    n = 10
+    dest = zeros(Int, n)
+    @floop for (i, x) in pairs(1:n)
+        @init y = zeros(Int, 3)
+        y .= (x, 2x, 3x)
+        dest[i] = y[1]
+    end
+    @test dest == 1:n
+end
+
 function probe_init(xs, ex = nothing)
     counter = zeros(Int, Threads.nthreads())
     lck = ReentrantLock()
