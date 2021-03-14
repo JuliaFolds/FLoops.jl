@@ -78,7 +78,7 @@ end == [55, 110, 165]
 
 using Random
 
-MersenneTwister()  # the first invocation of `MersenneTwister` is not thread-safe
+MersenneTwister()  # the first invocation of `MersenneTwister` is not data race-free
 
 @dedent let
     @floop for _ in 1:10
