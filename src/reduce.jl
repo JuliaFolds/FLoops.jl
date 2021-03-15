@@ -285,7 +285,6 @@ end
 function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, executor)
     accs_symbols = Symbol[]
     inputs_symbols = Symbol[]
-    init_exprs = []
     combine_bodies = []
     all_rf_inits = []
     all_rf_accs = []
@@ -294,7 +293,6 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     function check_invariance()
         num_state_groups = length(accs_symbols)
         @assert length(inputs_symbols) == num_state_groups
-        @assert length(init_exprs) == num_state_groups
         @assert length(all_rf_inits) == num_state_groups
         @assert length(all_rf_accs) == num_state_groups
         @assert length(all_rf_inputs) == num_state_groups
@@ -317,7 +315,6 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         push!(inputs_symbols, :_)
 
         accs = spec.lhs
-        push!(init_exprs, _FLoopInit())
         push!(all_rf_inits, nothing)
         push!(all_rf_accs, accs)
         push!(all_rf_inputs, nothing)
@@ -372,7 +369,6 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             append!(pre_updates, pre_updates2)
             updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
         end
-        push!(init_exprs, inits === nothing ? _FLoopInit() : Expr(:tuple, inits...))
         push!(all_rf_inits, inits)
         push!(all_rf_accs, accs)
         push!(all_rf_inputs, inputs)
@@ -381,12 +377,19 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # TODO: input symbols just have to be unique within a
         # `@reduce` block.  This restriction (unique across all
         # `@reduce`) can be removed.
-        initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
+        if inits === nothing
+            initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
+            updaters0 = []
+        else
+            initializers = [:($a = $x) for (a, x) in zip(accs, inits)]
+            updaters0 = updaters
+        end
         function rf_body_with_init(pre_updates = [])
             quote
                 $(pre_updates...)
                 if $grouped_accs isa $_FLoopInit
                     $(initializers...)
+                    $(updaters0...)
                 else
                     ($(accs...),) = $grouped_accs
                     $(updaters...)
@@ -408,9 +411,10 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 
     body2, info = transform_loop_body(body1, accs_symbols)
 
-    @gensym reducing_function combine_function result
+    @gensym oninit_function reducing_function combine_function result
     if ctx.module_ === Main
         # Ref: https://github.com/JuliaLang/julia/issues/39895
+        oninit_function = Symbol(:__, oninit_function)
         reducing_function = Symbol(:__, reducing_function)
         combine_function = Symbol(:__, combine_function)
     end
@@ -445,6 +449,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     inputs_declarations = mkdecl(all_rf_inputs)
 
     return quote
+        $Base.@inline $oninit_function() = $(Tuple(_FLoopInit() for _ in accs_symbols))
         $Base.@inline function $reducing_function(($(accs_symbols...),), $rf_arg)
             $(accs_declarations...)
             $body2
@@ -459,8 +464,10 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         end
         $_verify_no_boxes($reducing_function)
         $result = $_fold(
-            $whencombine($combine_function, $reducing_function),
-            $OnInit(() -> ($(init_exprs...),)),
+            $wheninit(
+                $oninit_function,
+                $whencombine($combine_function, $reducing_function),
+            ),
             $coll,
             $executor,
             $(Val(simd)),
@@ -476,10 +483,11 @@ struct _FLoopInit end
 
 @noinline unreachable_floop() = error("unrechable reached (FLoops.jl bug)")
 
-@inline _fold(rf::RF, init, coll, ::Nothing, simd) where {RF} =
-    _fold(rf, init, coll, PreferParallel(), simd)
-@inline _fold(rf::RF, init, coll, exc::Executor, simd) where {RF} =
-    unreduced(transduce(IdentityTransducer(), rf, init, coll, maybe_set_simd(exc, simd)))
+@inline _fold(rf::RF, coll, ::Nothing, simd) where {RF} =
+    _fold(rf, coll, PreferParallel(), simd)
+@inline _fold(rf::RF, coll, exc::Executor, simd) where {RF} = unreduced(
+    transduce(IdentityTransducer(), rf, DefaultInit, coll, maybe_set_simd(exc, simd)),
+)
 
 function Base.showerror(io::IO, opspecs::ReduceOpSpec)
     print(io, "`@reduce(")

@@ -2,6 +2,7 @@ module TestReduce
 
 using FLoops
 using Test
+using Transducers: SplitBy
 
 @testset "sum" begin
     @floop for (x, y) in zip(1:3, 1:2:6)
@@ -135,12 +136,43 @@ end
     @test two_floops(1:8) == 5.25
 end
 
+function sum_arrays(arrays, ex = nothing)
+    @floop ex for x in arrays
+        # @reduce(s = zero(y) .+ y)  # TODO
+        @reduce() do (s = zero(x); x)
+            s .+= x
+        end
+    end
+    return s
+end
+
+@testset "@reduce init scope" begin
+    @test sum_arrays([[1], [2], [3]]) == [sum(1:3)]
+    @test sum_arrays([[1], [2], [3]], SequentialEx()) == [sum(1:3)]
+end
+
+function maximum_partition_length(f, xs, ex = nothing)
+    @floop ex for chunk in SplitBy(f)(xs)
+        @reduce m = max(typemin(Int), length(chunk))
+    end
+    return m
+end
+
+@testset "SplitBy" begin
+    @test maximum_partition_length(isodd, 1:10) == 1
+    @test maximum_partition_length(isodd, 1:10, SequentialEx()) == 1
+    @test maximum_partition_length(==(7), 1:10) == 6
+    @test maximum_partition_length(==(7), 1:10, SequentialEx()) == 6
+    xs = rand(0:9, 1000)
+    @test maximum_partition_length(iszero, xs) ==
+          maximum_partition_length(iszero, xs, SequentialEx())
+end
+
 function sum_halved_arrays(arrays, ex = nothing)
     @floop ex for x in arrays
         @init y = zero(x)
         y .= x .÷ 2
         @reduce(s = 0 + sum(y))
-        # @reduce(s = zero(y) .+ y)  # TODO
     end
     return s
 end
