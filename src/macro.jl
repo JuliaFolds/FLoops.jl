@@ -34,13 +34,13 @@ executor such as `SequentialEx`, `ThreadedEx` and `DistributedEx`) or a
         @reduce ...
     end
 
-See the module docstring of [`Floops`](@ref) for examples.
+See the module docstring of [`FLoops`](@ref) for examples.
 """
 macro floop(ex)
     ctx = MacroContext(__source__, __module__)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    has_reduce(exx) && return esc(floop_parallel(ctx, exx, simd))
+    is_parallel(exx) && return esc(floop_parallel(ctx, exx, simd))
     esc(floop(exx, simd))
 end
 

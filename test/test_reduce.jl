@@ -135,6 +135,94 @@ end
     @test two_floops(1:8) == 5.25
 end
 
+function sum_halved_arrays(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @init y = zero(x)
+        y .= x .÷ 2
+        @reduce(s = 0 + sum(y))
+        # @reduce(s = zero(y) .+ y)  # TODO
+    end
+    return s
+end
+
+function two_inits(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @init begin
+            y = zero(x)
+            z = similar(y)
+        end
+        y .= x .÷ 2
+        z .= 2 .* y
+        r = sum(a * b for (a, b) in zip(y, z))
+        @reduce(s = 0 + r)
+    end
+    return s
+end
+
+function two_inits2(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @init y = zero(x)
+        @init z = similar(y)
+        y .= x .÷ 2
+        z .= 2 .* y
+        r = sum(a * b for (a, b) in zip(y, z))
+        @reduce(s = 0 + r)
+    end
+    return s
+end
+
+@testset "@init" begin
+    arrays = [[1, 2], [3, 4], [5, 6], [7, 8]]
+    desired = sum(sum(x .÷ 2) for x in arrays)
+    @test sum_halved_arrays(arrays) == desired
+    @test sum_halved_arrays(arrays, SequentialEx()) == desired
+
+    desired = sum((c ÷ 2) * (2 * (c ÷ 2)) for x in arrays for c in x)
+    @test two_inits(arrays) == desired
+    @test two_inits(arrays, SequentialEx()) == desired
+    @test two_inits2(arrays) == desired
+    @test two_inits2(arrays, SequentialEx()) == desired
+end
+
+@testset "just @init" begin
+    n = 10
+    dest = zeros(Int, n)
+    @floop for (i, x) in pairs(1:n)
+        @init y = zeros(Int, 3)
+        y .= (x, 2x, 3x)
+        dest[i] = y[1]
+    end
+    @test dest == 1:n
+end
+
+function probe_init(xs, ex = nothing)
+    counter = zeros(Int, Threads.nthreads())
+    lck = ReentrantLock()
+    function record!()
+        lock(lck) do
+            counter[Threads.threadid()] += 1
+        end
+    end
+    @floop ex for x in xs
+        @init y = begin
+            record!()
+            nothing
+        end
+    end
+    return counter
+end
+
+@testset "@init called once" begin
+    @testset "default" begin
+        counter = probe_init(1:(Threads.nthreads() * 100))
+        @test sum(counter) == Threads.nthreads()
+    end
+    @testset "SequentialEx" begin
+        counter = probe_init(1:(Threads.nthreads() * 100), SequentialEx())
+        @test sum(counter) == 1
+    end
+end
+
 @testset "unprocessed @reduce" begin
     err = try
         @reduce(s += y, p *= y)
@@ -144,6 +232,40 @@ end
     end
     @test err isa FLoops.ReduceOpSpec
     @test occursin("used outside `@floop`", sprint(showerror, err))
+end
+
+@testset "unprocessed @init" begin
+    err = try
+        @init x = 0
+        nothing
+    catch err
+        err
+    end
+    @test err isa FLoops.InitSpec
+    @test occursin("used outside `@floop`", sprint(showerror, err))
+end
+
+@testset "invalid @init" begin
+    @testset "toplevel" begin
+        err = try
+            @eval @init(a)
+            nothing
+        catch err
+            err
+        end
+        @test err isa Exception
+        @test occursin("requires an assignment", sprint(showerror, err))
+    end
+    @testset "non assignment" begin
+        err = try
+            @eval @init a += 1
+            nothing
+        catch err
+            err
+        end
+        @test err isa Exception
+        @test occursin("requires an assignment", sprint(showerror, err))
+    end
 end
 
 @testset "duplicated accumulators" begin

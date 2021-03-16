@@ -1,7 +1,7 @@
 name = "FLoops"
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
 authors = ["Takafumi Arakaki <aka.tkf@gmail.com>"]
-version = "0.1.8-DEV"
+version = "0.1.9-DEV"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
@@ -23,10 +23,12 @@ julia = "1"
 [extras]
 BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Future = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 LiterateTest = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
 MicroCollections = "128add7d-3638-4c79-886c-908ea0c25c34"
 PerformanceTestTools = "dc46b164-d16f-48ec-a853-60448fc869fe"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["BangBang", "Documenter", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Test"]
+test = ["BangBang", "Documenter", "Future", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Random", "Test"]

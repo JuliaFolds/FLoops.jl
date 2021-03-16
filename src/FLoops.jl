@@ -12,13 +12,18 @@ module FLoops
     )
     doc = replace(
         doc,
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/#tutorials-executor" =>
+            "@ref tutorials-executor",
+    )
+    doc = replace(
+        doc,
         "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/" =>
             "@ref tutorials-parallel",
     )
     doc
 end FLoops
 
-export @floop, @reduce, DistributedEx, SequentialEx, ThreadedEx
+export @floop, @init, @reduce, DistributedEx, SequentialEx, ThreadedEx
 
 using Base.Meta: isexpr
 using FLoopsBase: EXTRA_STATE_VARIABLES
@@ -33,6 +38,7 @@ using Transducers:
     IdentityTransducer,
     Map,
     MapCat,
+    NotA,
     OnInit,
     PreferParallel,
     ReduceIf,

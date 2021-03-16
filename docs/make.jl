@@ -22,7 +22,10 @@ PAGES = [
         # "Sequential loop" => "reference/sequential.md",
         "Parallelizable reduction (WIP)" => "reference/reduction.md",
     ],
-    # "Explanation" => ...,
+    "Explanation" => [
+        "FAQ" => "explanation/faq.md",
+        # TODO: discuss design rationales?
+    ],
 ]
 
 let example_dir = joinpath(dirname(@__DIR__), "examples")
@@ -52,6 +55,8 @@ makedocs(;
     format = Documenter.HTML(),
     modules = [FLoops],
     pages = PAGES,
+    checkdocs = :exports,
+    strict = lowercase(get(ENV, "CI", "false")) == "true",
 )
 
 deploydocs(; repo = "github.com/JuliaFolds/FLoops.jl", push_preview = true)
