@@ -312,8 +312,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
 
     function on_init(spec::InitSpec)
-        @gensym grouped_private_states
-        push!(accs_symbols, grouped_private_states)
+        @gensym grouped_init_states
+        push!(accs_symbols, grouped_init_states)
         push!(inputs_symbols, :_)
 
         accs = spec.lhs
@@ -329,12 +329,11 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # TODO: maybe hoist out the invocation of `rhs` to `OnInit`?
         initializer = spec.expr
         return quote
-            if $grouped_private_states isa $_FLoopInit
+            if $grouped_init_states isa $_FLoopInit
                 $initializer  # the expression from `@init $initializer`
-                $grouped_private_states = ($(accs...),)  # reuse it next time
             else
                 # After the initialization, just carry it over to the next iteration:
-                ($(accs...),) = $grouped_private_states
+                ($(accs...),) = $grouped_init_states
             end
         end
     end
