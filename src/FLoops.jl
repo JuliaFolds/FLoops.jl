@@ -33,6 +33,7 @@ using Setfield: @set
 using Transducers:
     @return_if_reduced,
     Cat,
+    DefaultInit,
     DistributedEx,
     Executor,
     IdentityTransducer,
@@ -58,12 +59,18 @@ using Transducers:
     right,
     transduce,
     unreduced,
-    whencombine
+    whencombine,
+    wheninit
 
 if isdefined(JuliaVariables, :solve!)
     using JuliaVariables: solve!
 else
     const solve! = JuliaVariables.solve
+end
+if isdefined(JuliaVariables, :solve_from_local!)
+    using JuliaVariables: solve_from_local!
+else
+    const solve_from_local! = JuliaVariables.solve_from_local
 end
 
 if !@isdefined isnothing
