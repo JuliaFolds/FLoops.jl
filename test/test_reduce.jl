@@ -196,30 +196,22 @@ end
 end
 
 function probe_init(xs, ex = nothing)
-    counter = zeros(Int, Threads.nthreads())
-    lck = ReentrantLock()
-    function record!()
-        lock(lck) do
-            counter[Threads.threadid()] += 1
-        end
-    end
+    ninit = Threads.Atomic{Int}(0)
     @floop ex for x in xs
         @init y = begin
-            record!()
+            Threads.atomic_add!(ninit, 1)
             nothing
         end
     end
-    return counter
+    return ninit[]
 end
 
 @testset "@init called once" begin
     @testset "default" begin
-        counter = probe_init(1:(Threads.nthreads() * 100))
-        @test sum(counter) == Threads.nthreads()
+        @test probe_init(1:(Threads.nthreads() * 100)) == Threads.nthreads()
     end
     @testset "SequentialEx" begin
-        counter = probe_init(1:(Threads.nthreads() * 100), SequentialEx())
-        @test sum(counter) == 1
+        @test probe_init(1:(Threads.nthreads() * 100), SequentialEx()) == 1
     end
 end
 
