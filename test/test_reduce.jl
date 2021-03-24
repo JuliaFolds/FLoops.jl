@@ -149,6 +149,15 @@ end
 @testset "@reduce init scope" begin
     @test sum_arrays([[1], [2], [3]]) == [sum(1:3)]
     @test sum_arrays([[1], [2], [3]], SequentialEx()) == [sum(1:3)]
+    @testset "let" begin
+        local y = 0
+        @floop for x in 1:10
+            let y = 123
+            end
+            @reduce(s = y + x)
+        end
+        @test s == sum(1:10)
+    end
 end
 
 function maximum_partition_length(f, xs, ex = nothing)
@@ -280,9 +289,22 @@ end
         @test err isa Exception
         @test occursin("requires an assignment", sprint(showerror, err))
     end
-    @testset "non assignment" begin
+    @testset "non assignment (+=)" begin
         err = try
             @eval @init a += 1
+            nothing
+        catch err
+            err
+        end
+        @test err isa Exception
+        @test occursin("requires an assignment", sprint(showerror, err))
+    end
+    @testset "non assignment (constant)" begin
+        err = try
+            @eval @init begin
+                a = 1
+                1
+            end
             nothing
         catch err
             err
