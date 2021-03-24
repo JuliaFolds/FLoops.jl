@@ -274,6 +274,7 @@ function labels_in(ex::Expr)::Vector{Symbol}
     end
 end
 
+unbound_rhs(@nospecialize _) = Symbol[]
 unbound_rhs(x::Symbol) = [x]
 unbound_rhs(ex::Expr) = _global_rhs(solve!(simplify_ex(deepcopy(ex))))
 _global_rhs(_) = Symbol[]

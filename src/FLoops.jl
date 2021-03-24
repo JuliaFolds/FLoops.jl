@@ -67,6 +67,11 @@ if isdefined(JuliaVariables, :solve!)
 else
     const solve! = JuliaVariables.solve
 end
+if isdefined(JuliaVariables, :solve_from_local!)
+    using JuliaVariables: solve_from_local!
+else
+    const solve_from_local! = JuliaVariables.solve_from_local
+end
 
 if !@isdefined isnothing
     using Compat: isnothing

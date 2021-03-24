@@ -85,7 +85,10 @@ end
 
 struct ReduceOpSpec
     args::Vector{Any}
+    visible::Vector{Symbol}
 end
+
+ReduceOpSpec(args::Vector{Any}) = ReduceOpSpec(args, Symbol[])
 
 """
     @init begin
@@ -104,30 +107,107 @@ end
 struct InitSpec
     expr::Expr
     lhs::Vector{Union{Symbol,Expr}}
+    rhs::Vector{Any}
+    visible::Vector{Symbol}
 end
 
+InitSpec(expr::Expr, lhs::Vector{Union{Symbol,Expr}}, rhs::Vector{Any}) =
+    InitSpec(expr, lhs, rhs, Symbol[])
+
 initspec(@nospecialize x) = invalid_at_init(x)
-initspec(ex::Expr) = InitSpec(ex, collect_lhs!(Union{Symbol,Expr}[], ex))
+initspec(ex::Expr) = InitSpec(ex, collect_assignments(ex)...)
 
 invalid_at_init(@nospecialize ex) =
     error("`@init` requires an assignment or a sequence of assignments; got:\n", ex)
 
 # TODO: merge with `assigned_vars`?
-collect_lhs!(_, @nospecialize(x)) = invalid_at_init(x)
-collect_lhs!(lhs, ::LineNumberNode) = lhs
-function collect_lhs!(lhs, ex::Expr)
+collect_assignments(ex) = collect_assignments!(Union{Symbol,Expr}[], [], ex)
+collect_assignments!(_, _, @nospecialize(x)) = invalid_at_init(x)
+collect_assignments!(lhs, rhs, ::LineNumberNode) = (lhs, rhs)
+function collect_assignments!(lhs, rhs, ex::Expr)
     @match ex begin
-        Expr(:(=), x::Union{Symbol,Expr}, _) => push!(lhs, x)
+        Expr(:(=), l::Union{Symbol,Expr}, r) => begin
+            push!(lhs, l)
+            push!(rhs, r)
+        end
         Expr(:block, args...) => begin
             for a in args
-                collect_lhs!(lhs, a)
+                collect_assignments!(lhs, rhs, a)
             end
         end
         # TODO: should we support other things, like side effects, here?
         _ => invalid_at_init(ex)
     end
-    return lhs
+    return (lhs, rhs)
 end
+
+""" Recursively copy `expr::Expr` but not `ReduceOpSpec` or `InitSpec`. """
+copyexpr(expr::Expr) = Expr(expr.head, (copyexpr(a) for a in expr.args)...)
+copyexpr(@nospecialize x) = x
+
+function analyze_loop_local_variables!(spec::Union{ReduceOpSpec,InitSpec}, scopes)
+    @assert isempty(spec.visible)
+    append!(spec.visible, (var.name for sc in scopes for var in sc.bounds))
+    unique!(spec.visible)
+    nothing
+end
+analyze_loop_local_variables!(expr::Expr, scopes) =
+    @match expr begin
+        Expr(:scoped, sc, inner) => begin
+            push!(scopes, sc)
+            analyze_loop_local_variables!(inner, scopes)
+            pop!(scopes)
+            nothing
+        end
+        _ => begin
+            for a in expr.args
+                analyze_loop_local_variables!(a, scopes)
+            end
+        end
+    end
+analyze_loop_local_variables!(@nospecialize(_), _) = nothing
+
+""" Fill `visible` field of `ReduceOpSpec` and `InitSpec` in-place. """
+function fill_loop_local_variables!(expr)
+    ex = copyexpr(expr)  # deep copy expr but not ReduceOpSpec or InitSpec
+    analyze_loop_local_variables!(solve_from_local!(simplify_ex(ex)), Any[])
+    return expr
+end
+#
+# Currently, we overestimate variables visible to `@reduce` and `@init`. For
+# example, we treat that `a` is visible to `init` clause of `@reduce` (i.e.,
+# `f(a)`) in the following example:
+#
+#     @reduce y = op(f(a), x)
+#     a = 1
+#
+# This is for (relatively easily) supporting the uses of `let` like this:
+#
+#     julia> let
+#                let
+#                    a = 1
+#                end
+#                a
+#            end
+#     ERROR: UndefVarError: a not defined
+#     ...
+#
+#     julia> let
+#                let
+#                    a = 1
+#                end
+#                @show a
+#                a = 0
+#                a
+#            end
+#     a = 1
+#     1
+#
+# The latter is the example where the visibility of `a` at `@show a` is
+# "retroactively" changed by the assignment after `@show a`; i.e., we cannot
+# use simple single forward-pass algorithm to compute the set of accessible
+# variables at given points.
+
 
 function unpack_kwargs(;
     otherwise = donothing,
@@ -142,7 +222,7 @@ end
 function on_reduce_op_spec(on_spec, ex; kwargs...)
     (otherwise, on_expr, on_init) = unpack_kwargs(; kwargs...)
     @match ex begin
-        Expr(:call, throw′, spec::ReduceOpSpec) => on_spec(spec.args)
+        Expr(:call, throw′, spec::ReduceOpSpec) => on_spec(spec)
         Expr(:call, throw′, spec::InitSpec) => on_init(spec)
         Expr(head, args...) => begin
             new_args = map(args) do x
@@ -282,9 +362,36 @@ function uniquify_inputs(inputs)
     return uniquified, pre_updates
 end
 
+function inject_spec_expr_for_analysis(ex::Expr)
+    function on_init(spec::InitSpec)
+        quote
+            $(spec.expr)
+            throw($spec)
+        end
+    end
+    function on_reduce(spec::ReduceOpSpec)
+        # If we want to make
+        #     @reduce(a = op(a0, x))
+        #     @reduce(b = op(f(a), x))
+        # work, we need to do something here. But, for the moment, let us
+        # pretend that the output of `@reduce` is not visible outside the
+        # `@reduce` block.
+        :(throw($spec))
+    end
+    return on_reduce_op_spec_reconstructing(on_reduce, ex; on_init = on_init)
+end
+
 function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, executor)
+    body0 = deepcopy(body0)  # To be mutated by `fill_loop_local_variables!`.
+    dummy_loop_body = quote  # Dummy expression that simulates the loop body for JuliaVariables.
+        $rf_arg = nothing
+        $(inject_spec_expr_for_analysis(body0))
+    end
+    fill_loop_local_variables!(dummy_loop_body)
+
     accs_symbols = Symbol[]
     inputs_symbols = Symbol[]
+    init_exprs = []
     combine_bodies = []
     all_rf_inits = []
     all_rf_accs = []
@@ -293,6 +400,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     function check_invariance()
         num_state_groups = length(accs_symbols)
         @assert length(inputs_symbols) == num_state_groups
+        @assert length(init_exprs) == num_state_groups
         @assert length(all_rf_inits) == num_state_groups
         @assert length(all_rf_accs) == num_state_groups
         @assert length(all_rf_inputs) == num_state_groups
@@ -323,20 +431,28 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # The corresponding combine function is "keep left" (i.e., do nothing):
         push!(combine_bodies, nothing)
 
-        # TODO: maybe hoist out the invocation of `rhs` to `OnInit`?
-        initializer = spec.expr
-        return quote
-            if $grouped_private_states isa $_FLoopInit
-                $initializer  # the expression from `@init $initializer`
-                $grouped_private_states = ($(accs...),)  # reuse it next time
-            else
-                # After the initialization, just carry it over to the next iteration:
-                ($(accs...),) = $grouped_private_states
+        if isempty(intersect(spec.visible, unbound_rhs(spec.expr)))
+            # Hoisting out `@init`, since it is not accessing variables used
+            # inside the loop body.
+            push!(init_exprs, :(tuple($(spec.rhs...))))
+            return :(($(accs...),) = $grouped_private_states)
+        else
+            push!(init_exprs, _FLoopInit())
+            initializer = spec.expr
+            return quote
+                if $grouped_private_states isa $_FLoopInit
+                    $initializer  # the expression from `@init $initializer`
+                    $grouped_private_states = ($(accs...),)  # reuse it next time
+                else
+                    # After the initialization, just carry it over to the next iteration:
+                    ($(accs...),) = $grouped_private_states
+                end
             end
         end
     end
 
-    body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do opspecs
+    body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do spec
+        opspecs = spec.args
         @gensym grouped_accs grouped_inputs
         push!(accs_symbols, grouped_accs)
         push!(inputs_symbols, grouped_inputs)
@@ -377,14 +493,31 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # TODO: input symbols just have to be unique within a
         # `@reduce` block.  This restriction (unique across all
         # `@reduce`) can be removed.
+        use_oninit = false
         if inits === nothing
             initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
             updaters0 = []
-        else
+            push!(init_exprs, _FLoopInit())
+        elseif any(!isempty(intersect(spec.visible, unbound_rhs(ex))) for ex in inits)
             initializers = [:($a = $x) for (a, x) in zip(accs, inits)]
             updaters0 = updaters
+            push!(init_exprs, _FLoopInit())
+        else
+            # Hoisting out `init` clauses, since it is not accessing variables
+            # used inside the loop body.
+            use_oninit = true
+            initializers = updaters0 = nothing
+            push!(init_exprs, :(tuple($(inits...))))
         end
         function rf_body_with_init(pre_updates = [])
+            if use_oninit
+                return quote
+                    $(pre_updates...)
+                    ($(accs...),) = $grouped_accs
+                    $(updaters...)
+                    $grouped_accs = ($(accs...),)
+                end
+            end
             quote
                 $(pre_updates...)
                 if $grouped_accs isa $_FLoopInit
@@ -397,11 +530,18 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
                 $grouped_accs = ($(accs...),)
             end
         end
-        combine_body = quote
-            if $grouped_inputs isa $_FLoopInit
-            else
-                ($(inputs...),) = $grouped_inputs
-                $(rf_body_with_init())
+        combine_body0 = quote
+            ($(inputs...),) = $grouped_inputs
+            $(rf_body_with_init())
+        end
+        combine_body = if use_oninit
+            combine_body0
+        else
+            quote
+                if $grouped_inputs isa $_FLoopInit
+                else
+                    $combine_body0
+                end
             end
         end
         push!(combine_bodies, combine_body)
@@ -449,7 +589,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     inputs_declarations = mkdecl(all_rf_inputs)
 
     return quote
-        $Base.@inline $oninit_function() = $(Tuple(_FLoopInit() for _ in accs_symbols))
+        $Base.@inline $oninit_function() = tuple($(init_exprs...))
         $Base.@inline function $reducing_function(($(accs_symbols...),), $rf_arg)
             $(accs_declarations...)
             $body2
