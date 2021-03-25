@@ -9,10 +9,11 @@ in a single-threaded `julia` instance and/or pre-1.3 Julia. This is because
 the above code is equivalent to
 
 ```julia
-a = state[threadid()]
+i = threadid()
+a = state[i]
 b = f(x)
 c = a + b
-state[threadid()] = c
+state[i] = c
 ```
 
 If `f` can yield to the scheduler, and if there are other tasks with the same
