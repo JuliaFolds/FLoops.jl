@@ -256,6 +256,21 @@ end
     end
 end
 
+function init_is_private(xs, ex = nothing)
+    @floop ex for x in xs
+        @init p = []
+        push!(p, x)
+        y = pop!(p)
+        @reduce s += y
+    end
+    return (sum = s, isdefined_p = @isdefined(p))
+end
+
+@testset "@init is private" begin
+    @test init_is_private(1:10) == (sum = sum(1:10), isdefined_p = false)
+    @test init_is_private(1:10, SequentialEx()) == (sum = sum(1:10), isdefined_p = false)
+end
+
 @testset "unprocessed @reduce" begin
     err = try
         @reduce(s += y, p *= y)

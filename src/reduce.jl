@@ -393,6 +393,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     inputs_symbols = Symbol[]
     init_exprs = []
     combine_bodies = []
+    is_init = Bool[]  # `is_init[i]` is true iff `i`th accumulator is due to `@init`
     all_rf_inits = []
     all_rf_accs = []
     all_rf_inputs = []
@@ -401,6 +402,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         num_state_groups = length(accs_symbols)
         @assert length(inputs_symbols) == num_state_groups
         @assert length(init_exprs) == num_state_groups
+        @assert length(is_init) == num_state_groups
         @assert length(all_rf_inits) == num_state_groups
         @assert length(all_rf_accs) == num_state_groups
         @assert length(all_rf_inputs) == num_state_groups
@@ -423,6 +425,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         push!(inputs_symbols, :_)
 
         accs = spec.lhs
+        push!(is_init, true)
         push!(all_rf_inits, nothing)
         push!(all_rf_accs, accs)
         push!(all_rf_inputs, nothing)
@@ -485,6 +488,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             append!(pre_updates, pre_updates2)
             updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
         end
+        push!(is_init, false)
         push!(all_rf_inits, inits)
         push!(all_rf_accs, accs)
         push!(all_rf_inputs, inputs)
@@ -559,9 +563,14 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         combine_function = Symbol(:__, combine_function)
     end
 
-    unpackers = map(enumerate(zip(all_rf_accs, all_rf_inits))) do (i, (accs, inits))
+    unpackers = map(
+        enumerate(zip(is_init, all_rf_accs, all_rf_inits)),
+    ) do (i, (nounpack, accs, inits))
         @gensym grouped_accs
-        if inits === nothing
+        if nounpack
+            # This accumulator is from `@init`.
+            nothing
+        elseif inits === nothing
             quote
                 $grouped_accs = $result[$i]
                 # Assign to accumulator only if it is updated at least once:
