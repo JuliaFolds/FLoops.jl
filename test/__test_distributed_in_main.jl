@@ -10,3 +10,7 @@ end
 @testset "sumwith" begin
     @test tests.sumwith(identity, 1:10, DistributedEx()) == sum(1:10)
 end
+
+@testset "useinit" begin
+    @test tests.useinit(1:10, DistributedEx()) == sum(1:10)
+end
