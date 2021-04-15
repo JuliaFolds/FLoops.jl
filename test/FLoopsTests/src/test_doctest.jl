@@ -4,10 +4,9 @@ using Documenter: doctest
 using FLoops
 using Test
 
-# Workaround `UndefVarError: FLoops not defined`
-@eval Main import FLoops
-
-@testset "doctest" begin
+function test()
+    # Workaround `UndefVarError: FLoops not defined`
+    @eval Main import FLoops
     doctest(FLoops, manual = true)
 end
 

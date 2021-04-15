@@ -16,17 +16,17 @@ function _make_closure_with_two_boxes()
     return set
 end
 
-@testset "_box_detection_works" begin
+function test__box_detection_works()
     @test _box_detection_works()
 end
 
-@testset "verify_no_boxes" begin
+function test_verify_no_boxes()
     @test (verify_no_boxes(_make_closure_without_a_box()); true)
     f = _make_closure_with_a_box()
     @test_throws HasBoxedVariableError(f) verify_no_boxes(f)
 end
 
-@testset "HasBoxedVariableError" begin
+function test_HasBoxedVariableError()
     @testset "one box" begin
         err = HasBoxedVariableError(_make_closure_with_a_box())
         @debug "Example `HasBoxedVariableError`" err
@@ -78,7 +78,7 @@ function with_box_10()
     Val(has_boxed_variables(closure))
 end
 
-@testset "Inferrability" begin
+function test_Inferrability()
     @test @inferred(with_box_1()) == Val(true)
     @test @inferred(with_box_3()) == Val(true)
     @test @inferred(with_box_7()) == Val(true)

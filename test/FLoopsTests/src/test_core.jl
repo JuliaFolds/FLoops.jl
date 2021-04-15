@@ -3,7 +3,7 @@ module TestCore
 using FLoops
 using Test
 
-@testset "two states" begin
+function test_two_states()
     xs = 1:10
     @floop begin
         s = 0
@@ -17,7 +17,7 @@ using Test
     @test p == prod(xs)
 end
 
-@testset "complex assignments" begin
+function test_complex_assignments()
     xs = 1:10
     @floop begin
         s = 0
@@ -31,7 +31,7 @@ end
     @test p == prod(xs)
 end
 
-@testset "no states" begin
+function test_no_states()
     xs = 1:10
     ys = similar(xs)
     @floop for (i, x) in enumerate(xs)
@@ -40,7 +40,7 @@ end
     @test ys == 2 .* xs
 end
 
-@testset "@inbounds" begin
+function test_at_inbounds()
     xs = 1:10
     @floop begin
         s = 0
@@ -51,7 +51,7 @@ end
     @test s == sum(xs)
 end
 
-@testset "function" begin
+function test_function()
     xs = 1:10
     @floop begin
         s = 0
@@ -63,7 +63,7 @@ end
     @test s == sum(xs)
 end
 
-@testset "let + break" begin
+function test_let_and_break()
     function demo(xs)
         @floop begin
             s = 0
@@ -85,7 +85,7 @@ end
     @test demo(1:4) == (sum(1:4), prod(1:4))
 end
 
-@testset "let + continue" begin
+function test_let_and_continue()
     function demo(xs)
         @floop begin
             s = 0
@@ -107,7 +107,7 @@ end
     @test demo(1:4) == (sum(1:4), prod(1:4))
 end
 
-@testset "continue" begin
+function test_continue()
     xs = 1:3
     ys = []
     @floop for x in xs
@@ -117,7 +117,7 @@ end
     @test ys == [2, 3]
 end
 
-@testset "break" begin
+function test_break()
     xs = 1:3
     ys = []
     @floop for x in xs
@@ -127,7 +127,7 @@ end
     @test ys == [1, 2]
 end
 
-@testset "return" begin
+function test_return()
     function demo()
         ys = []
         @floop for x in 1:3
@@ -140,7 +140,7 @@ end
     @test demo() == [1, 2]
 end
 
-@testset "product" begin
+function test_product()
     xs = 1:10
     ys = 2:3:15
     actual = []
@@ -154,7 +154,7 @@ end
     @test actual == desired
 end
 
-@testset "triangular (2)" begin
+function test_triangular_2()
     xs = 1:10
     actual = []
     @floop for x in xs, y in x:2:10
@@ -167,7 +167,7 @@ end
     @test actual == desired
 end
 
-@testset "triangular (3)" begin
+function test_triangular_3()
     xs = 1:10
     actual = []
     @floop for x in xs, y in x:2:10, z in x:y:20
@@ -181,7 +181,7 @@ end
     @test actual == desired
 end
 
-@testset "internal goto" begin
+function test_internal_goto()
     xs = 1:10
     @floop begin
         s = 0
@@ -194,7 +194,7 @@ end
     @test s == 0
 end
 
-@testset "external goto" begin
+function test_external_goto()
     xs = 1:10
     @floop begin
         s = 0
