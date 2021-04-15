@@ -283,7 +283,7 @@ function _global_rhs(ex::Expr)
     @match ex begin
         Expr(:(=), _, rhs) => _global_rhs(rhs)
         Expr(:tuple, _..., Expr(:(=), _, rhs)) => _global_rhs(rhs)
-        Expr(_, args...) => mapfoldl(_global_rhs, append!, args; init = Symbol[])
+        Expr(_, args...) => mapreduce(_global_rhs, vcat, args)
     end
 end
 
