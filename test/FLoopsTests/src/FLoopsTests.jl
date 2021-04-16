@@ -1,4 +1,7 @@
 module FLoopsTests
+
+using Distributed
+using LoadAllPackages
 using Test
 
 for file in sort([
@@ -44,8 +47,28 @@ function with_project(f)
     end
 end
 
+function load_me_everywhere()
+    prepare_impl()
+    @everywhere append!(empty!(LOAD_PATH), $(copy(LOAD_PATH)))
+    pkgid = Base.PkgId(@__MODULE__)
+    @everywhere Base.require($pkgid)
+    @everywhere $prepare_impl()
+end
+
+function prepare_impl()
+    LoadAllPackages.loadall(this_project())
+end
+
 function runtests(modules = collect_modules())
     with_project() do
+        if get(ENV, "CI", "false") == "true"
+            if nprocs() < 4
+                addprocs(4 - nprocs())
+            end
+        end
+        @info "Testing with:" nprocs()
+
+        load_me_everywhere()
         runtests_impl(modules)
     end
 end
