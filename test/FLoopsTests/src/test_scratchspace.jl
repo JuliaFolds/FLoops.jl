@@ -12,7 +12,7 @@ function roundtrip(x)
     return deserialize(buf)
 end
 
-function test_invariance(x)
+function check_invariance(x)
     @nospecialize
     @assert !(x.value isa Cleared)
     @testset "allocate" begin
@@ -46,15 +46,20 @@ function test_invariance(x)
 end
 
 makevector() = [123]
-@testset "x = ScratchSpace(makevector, makevector())" begin
-    x = ScratchSpace(makevector, makevector())
-    test_invariance(x)
+makeint() = 123
+
+function test_invariance_mutable()
+    @testset "x = ScratchSpace(makevector, makevector())" begin
+        x = ScratchSpace(makevector, makevector())
+        check_invariance(x)
+    end
 end
 
-makeint() = 123
-@testset "x = ScratchSpace(makeint, makeint())" begin
-    x = ScratchSpace(makeint, makeint())
-    test_invariance(x)
+function test_invariance_immutable()
+    @testset "x = ScratchSpace(makeint, makeint())" begin
+        x = ScratchSpace(makeint, makeint())
+        check_invariance(x)
+    end
 end
 
 end  # module
