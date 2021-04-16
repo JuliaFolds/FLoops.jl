@@ -69,7 +69,7 @@ function runtests_impl(modules)
             applicable(f) || return nothing  # removed by Revise?
             return f
         end
-        filter!(!isnothing, tests)
+        tests = [f for f in tests if f !== nothing]
         @testset "$f" for f in tests
             f()
         end
