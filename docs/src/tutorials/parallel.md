@@ -200,7 +200,7 @@ julia> @floop for (i, v) in pairs([0, 1, 3, 2])
 `@floop` takes optional executor argument to specify an execution strategies
 and the parameters of the strategy:
 
-```jldoctest
+```jldoctest; setup = :(DistributedEx(; ignore...) = SequentialEx())
 julia> using FLoops
 
 julia> function demo(executor)
