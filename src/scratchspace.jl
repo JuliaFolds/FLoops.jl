@@ -15,7 +15,7 @@ struct ScratchSpace{F,T}
     f::F
     value::Union{T,Cleared}
     ScratchSpace(f::F, value::T) where {F,T} = new{F,T}(f, value)
-    ScratchSpace{F,T}(f::F, value::T) where {F,T} = new{F,T}(f, value)
+    # ScratchSpace{F,T}(f::F, value::T) where {F,T} = new{F,T}(f, value)
     ScratchSpace{F,T}(f::F) where {F,T} = new{F,T}(f, Cleared())  # deallocate
 end
 # Note: Using `::Union{T,Cleared}` so that serialize-deserialize does not
