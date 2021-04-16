@@ -97,6 +97,12 @@ repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
 version = "0.1.0"
 
+[[FLoopsTests]]
+deps = ["BangBang", "ContextVariablesX", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Random", "Serialization", "Test", "Transducers"]
+path = "../../FLoopsTests"
+uuid = "1c45e723-db3a-42a1-a87c-e007e67bfd87"
+version = "0.1.0"
+
 [[Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"

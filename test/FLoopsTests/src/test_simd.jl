@@ -3,7 +3,7 @@ module TestSIMD
 using FLoops
 using Test
 
-@testset "@simd" begin
+function test_at_simd()
     xs = 1:10
     @floop begin
         s = 0
@@ -14,7 +14,7 @@ using Test
     @test s == sum(1:10)
 end
 
-@testset "@simd ivdep" begin
+function test_at_simd_ivdep()
     xs = 1:10
     ys = similar(xs)
     @floop begin
@@ -25,7 +25,7 @@ end
     @test ys == 2 .* xs
 end
 
-@testset "Base.@simd" begin
+function test_Base_at_simd()
     xs = 1:10
     @floop begin
         s = 0
@@ -36,7 +36,7 @@ end
     @test s == sum(1:10)
 end
 
-@testset "Base.@simd ivdep" begin
+function test_Base_at_simd_ivdep()
     xs = 1:10
     ys = similar(xs)
     @floop begin
@@ -56,7 +56,7 @@ macro simd(args...)
     esc(args[end])
 end
 
-@testset "@simd (not Base.@simd)" begin
+function test_fake_at_simd()
     xs = 1:10
     @floop begin
         s = 0
@@ -67,7 +67,7 @@ end
     @test s == sum(1:10)
 end
 
-@testset "@simd ivdep (not Base.@simd)" begin
+function test_fake_at_simd_ivdep()
     xs = 1:10
     ys = similar(xs)
     @floop begin
@@ -80,7 +80,7 @@ end
 
 end  # module TestFakeSIMD
 
-@testset "TestFakeSIMD.@simd" begin
+function test_TestFakeSIMD_at_simd()
     xs = 1:10
     @floop begin
         s = 0
@@ -91,7 +91,7 @@ end  # module TestFakeSIMD
     @test s == sum(1:10)
 end
 
-@testset "TestFakeSIMD.@simd ivdep" begin
+function test_TestFakeSIMD_at_simd_ivdep()
     xs = 1:10
     ys = similar(xs)
     @floop begin
