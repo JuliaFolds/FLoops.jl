@@ -110,7 +110,7 @@ function f_find_goto(executor)
 end
 
 TESTDATA = [
-    (f_copy, ==, 1:10, true),
+    (f_copy, ==, 1:10, false),
     (f_sum, ===, 55, true),
     (f_filter_sum, ===, 25, true),
     (f_sum_nested_loop, ===, 220, true),

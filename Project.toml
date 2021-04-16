@@ -25,10 +25,11 @@ BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Future = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 LiterateTest = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
+LoadAllPackages = "b37bcd2d-1570-475d-a8c6-9b4fae6d0ba9"
 MicroCollections = "128add7d-3638-4c79-886c-908ea0c25c34"
 PerformanceTestTools = "dc46b164-d16f-48ec-a853-60448fc869fe"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["BangBang", "Documenter", "Future", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Random", "Test"]
+test = ["BangBang", "Documenter", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Test"]

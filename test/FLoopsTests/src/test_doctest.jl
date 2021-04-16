@@ -1,13 +1,6 @@
 module TestDoctest
-
-using Documenter: doctest
-using FLoops
-using Test
-
+using PerformanceTestTools
 function test()
-    # Workaround `UndefVarError: FLoops not defined`
-    @eval Main import FLoops
-    doctest(FLoops, manual = true)
+    PerformanceTestTools.@include_foreach("__test_doctest.jl", [[]])
 end
-
 end  # module
