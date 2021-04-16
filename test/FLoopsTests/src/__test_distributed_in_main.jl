@@ -12,5 +12,7 @@ end
 end
 
 @testset "useinit" begin
-    @test tests.useinit(1:10, DistributedEx()) == sum(1:10)
+    if VERSION >= v"1.6"
+        @test tests.useinit(1:10, DistributedEx()) == sum(1:10)
+    end
 end
