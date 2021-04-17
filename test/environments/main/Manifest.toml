@@ -33,11 +33,9 @@ version = "1.1.0"
 
 [[ContextVariablesX]]
 deps = ["Compat", "Logging", "UUIDs"]
-git-tree-sha1 = "d89ab02ef4df100561f005954e28d8576b3bf17b"
-repo-rev = "master"
-repo-url = "https://github.com/tkf/ContextVariablesX.jl.git"
+git-tree-sha1 = "fc81d9dd4ffdafb56680f01e6d9db464a6b3689d"
 uuid = "6add18c4-b38d-439d-96f6-d6bc489c04c5"
-version = "0.1.2-DEV"
+version = "0.1.1"
 
 [[DataAPI]]
 git-tree-sha1 = "dfb3b7e89e395be1e25c2ad6d7690dc29cc53b1d"
@@ -86,11 +84,15 @@ version = "0.1.9-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
-git-tree-sha1 = "5ce7d7b0851a9c8a7efc3e40fc276ebaa0c0b41c"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
+git-tree-sha1 = "cf3d8b2527be12d204d06aba922b30339a9653dd"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
-version = "0.1.1-DEV"
+version = "0.1.0"
+
+[[FLoopsTests]]
+deps = ["BangBang", "ContextVariablesX", "Distributed", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Test", "Transducers"]
+path = "../../FLoopsTests"
+uuid = "1c45e723-db3a-42a1-a87c-e007e67bfd87"
+version = "0.1.0"
 
 [[Future]]
 deps = ["Random"]
@@ -141,11 +143,15 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[LiterateTest]]
 deps = ["Test"]
-git-tree-sha1 = "fa20a5d8cbe9eb40055588258a3de2a269cea9e9"
-repo-rev = "master"
-repo-url = "https://github.com/tkf/LiterateTest.jl.git"
+git-tree-sha1 = "f10e6f4d46da26a33e9cea7a5aed3476b592bbfb"
 uuid = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
-version = "0.1.5-DEV"
+version = "0.1.4"
+
+[[LoadAllPackages]]
+deps = ["Pkg"]
+git-tree-sha1 = "de9eababca8fdc9b6b207ed05f99693faa608230"
+uuid = "b37bcd2d-1570-475d-a8c6-9b4fae6d0ba9"
+version = "0.1.0"
 
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
@@ -270,11 +276,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Transducers]]
 deps = ["ArgCheck", "BangBang", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "0c6c47a489f053fe231e124c2aec53fd145dc615"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaFolds/Transducers.jl.git"
+git-tree-sha1 = "721dc0b917a43e6d191f07a6ea095ced164f08ce"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.63-DEV"
+version = "0.4.62"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
