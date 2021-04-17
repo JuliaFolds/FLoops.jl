@@ -10,3 +10,9 @@ end
 @testset "sumwith" begin
     @test tests.sumwith(identity, 1:10, DistributedEx()) == sum(1:10)
 end
+
+@testset "useinit" begin
+    if VERSION >= v"1.6"
+        @test tests.useinit(1:10, DistributedEx()) == sum(1:10)
+    end
+end

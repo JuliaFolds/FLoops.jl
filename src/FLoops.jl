@@ -30,6 +30,7 @@ using FLoopsBase: EXTRA_STATE_VARIABLES
 using JuliaVariables: JuliaVariables, Var, simplify_ex
 using MLStyle: @match
 using Setfield: @set
+using Serialization: AbstractSerializer, Serialization
 using Transducers:
     @return_if_reduced,
     Cat,
@@ -80,6 +81,7 @@ end
 include("utils.jl")
 include("macro.jl")
 include("reduce.jl")
+include("scratchspace.jl")
 include("checkboxes.jl")
 
 end # module

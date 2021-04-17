@@ -434,21 +434,34 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # The corresponding combine function is "keep left" (i.e., do nothing):
         push!(combine_bodies, nothing)
 
+        @gensym init_allocator
+        scratch = quote
+            $(spec.expr)  # the expression from `@init $initializer`; sets `accs`
+            $Base.@inline $init_allocator() = tuple($(spec.rhs...))
+            $ScratchSpace($init_allocator, ($(accs...),))
+        end
+
         if isempty(intersect(spec.visible, unbound_rhs(spec.expr)))
             # Hoisting out `@init`, since it is not accessing variables used
             # inside the loop body.
-            push!(init_exprs, :(tuple($(spec.rhs...))))
-            return :(($(accs...),) = $grouped_private_states)
+            push!(init_exprs, scratch)
+            return quote
+                # Just in case it is demoted to `EmptyScratchSpace`:
+                $grouped_private_states = $allocate($grouped_private_states)
+                ($(accs...),) = $grouped_private_states.value
+            end
         else
             push!(init_exprs, _FLoopInit())
-            initializer = spec.expr
             return quote
                 if $grouped_private_states isa $_FLoopInit
-                    $initializer  # the expression from `@init $initializer`
-                    $grouped_private_states = ($(accs...),)  # reuse it next time
+                    # `$scratch` sets `$accs`.
+                    # Assigning to `grouped_private_states` for reusing it next time.
+                    $grouped_private_states = $scratch
                 else
+                    # Just in case it is demoted to `EmptyScratchSpace`:
+                    $grouped_private_states = $allocate($grouped_private_states)
                     # After the initialization, just carry it over to the next iteration:
-                    ($(accs...),) = $grouped_private_states
+                    ($(accs...),) = $grouped_private_states.value
                 end
             end
         end
@@ -598,7 +611,10 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     inputs_declarations = mkdecl(all_rf_inputs)
 
     return quote
-        $Base.@inline $oninit_function() = tuple($(init_exprs...))
+        $Base.@inline function $oninit_function()
+            $(accs_declarations...)
+            return tuple($(init_exprs...))
+        end
         $Base.@inline function $reducing_function(($(accs_symbols...),), $rf_arg)
             $(accs_declarations...)
             $body2
