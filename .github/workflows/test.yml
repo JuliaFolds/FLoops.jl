@@ -30,6 +30,5 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: ./lcov.info
-          flags: unittests
+          flags: Run.test
           name: codecov-umbrella
-          token: ${{ secrets.CODECOV_TOKEN }}

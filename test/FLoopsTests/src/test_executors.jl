@@ -109,8 +109,8 @@ function f_find_goto(executor)
     return (:found, s)
 end
 
-@testset "$f" for (f, ≛, desired, distributed) in [
-    (f_copy, ==, 1:10, true),
+TESTDATA = [
+    (f_copy, ==, 1:10, false),
     (f_sum, ===, 55, true),
     (f_filter_sum, ===, 25, true),
     (f_sum_nested_loop, ===, 220, true),
@@ -124,6 +124,13 @@ end
     (f_find_goto, ===, (:found, 3), true),
 ]
 
+function test()
+    @testset "$(args[1])" for args in TESTDATA
+        test(args...)
+    end
+end
+
+function test(f, ≛, desired, distributed)
     # Make sure that `executor` is used
     err = try
         f("string is not executor")
@@ -143,7 +150,7 @@ end
     @testset for basesize in 2:10
         @test f(ThreadedEx(basesize = 2)) ≛ desired
     end
-    distributed || continue
+    distributed || return
     @test f(DistributedEx()) ≛ desired
     @testset for threads_basesize in 2:10
         @test f(DistributedEx(threads_basesize = threads_basesize)) ≛ desired

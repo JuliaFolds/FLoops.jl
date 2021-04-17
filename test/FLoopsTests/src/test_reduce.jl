@@ -4,7 +4,7 @@ using FLoops
 using Test
 using Transducers: SplitBy
 
-@testset "sum" begin
+function test_sum()
     @floop for (x, y) in zip(1:3, 1:2:6)
         a = x + y
         b = x - y
@@ -13,7 +13,7 @@ using Transducers: SplitBy
     @test (s, t) === (15, -3)
 end
 
-@testset "sum with init" begin
+function test_sum_with_init()
     @floop for (x, y) in zip(1:3, 1:2:6)
         a = x + y
         b = x - y
@@ -22,7 +22,7 @@ end
     @test (s, t) === (15 + 0im, -3 + 0im)
 end
 
-@testset "sum, nested loop" begin
+function test_sum_nested_loop()
     @floop for x in 1:3, y in 1:2:6
         a = x + y
         b = x - y
@@ -31,7 +31,7 @@ end
     @test (s, t) === (45, -9)
 end
 
-@testset "findmax" begin
+function test_findmax()
     @floop for (i, v) in pairs([0, 1, 3, 2])
         y = 2v
         @reduce() do (ymax = -Inf; y), (imax = 0; i)
@@ -44,7 +44,7 @@ end
     @test (ymax, imax) == (6, 3)
 end
 
-@testset "findminmax" begin
+function test_findminmax()
     @floop for (i, v) in pairs([0, 1, 3, 2])
         y = 2v
         @reduce() do (ymax = -Inf; y), (imax = 0; i)
@@ -64,7 +64,7 @@ end
     @test (ymin, imin) == (0, 1)
 end
 
-@testset "break" begin
+function test_break()
     @floop for x in 1:10
         @reduce(s += x)
         x == 3 && break
@@ -72,7 +72,7 @@ end
     @test s == 6
 end
 
-@testset "findmax with filtering" begin
+function test_findmax_with_filtering()
     @floop for (i, v) in pairs([0, 1, 4, 3, 1])
         if isodd(v)
             @reduce() do (vmax = -Inf; v), (imax = 0; i)
@@ -86,7 +86,7 @@ end
     @test (vmax, imax) == (3, 4)
 end
 
-@testset "non-unique arguments" begin
+function test_nonunique_arguments()
     @testset "`@reduce(a += x, b *= x)`" begin
         xs = 1:10
         @floop for x in xs
@@ -131,7 +131,7 @@ function two_floops(xs, ex = nothing)
     return v / c
 end
 
-@testset "empty" begin
+function test_empty()
     @test !FLoops.has_boxed_variables(floop_with_init_binops(1:10))
     @test two_floops(1:8) == 5.25
 end
@@ -146,7 +146,7 @@ function sum_arrays(arrays, ex = nothing)
     return s
 end
 
-@testset "@reduce init scope" begin
+function test_at_reduce_init_scope()
     @test sum_arrays([[1], [2], [3]]) == [sum(1:3)]
     @test sum_arrays([[1], [2], [3]], SequentialEx()) == [sum(1:3)]
     @testset "let" begin
@@ -167,7 +167,7 @@ function maximum_partition_length(f, xs, ex = nothing)
     return m
 end
 
-@testset "SplitBy" begin
+function test_SplitBy()
     @test maximum_partition_length(isodd, 1:10) == 1
     @test maximum_partition_length(isodd, 1:10, SequentialEx()) == 1
     @test maximum_partition_length(==(7), 1:10) == 6
@@ -212,7 +212,7 @@ function two_inits2(arrays, ex = nothing)
     return s
 end
 
-@testset "@init" begin
+function test_at_init()
     arrays = [[1, 2], [3, 4], [5, 6], [7, 8]]
     desired = sum(sum(x .÷ 2) for x in arrays)
     @test sum_halved_arrays(arrays) == desired
@@ -225,7 +225,7 @@ end
     @test two_inits2(arrays, SequentialEx()) == desired
 end
 
-@testset "just @init" begin
+function test_just_at_init()
     n = 10
     dest = zeros(Int, n)
     @floop for (i, x) in pairs(1:n)
@@ -247,7 +247,7 @@ function probe_init(xs, ex = nothing)
     return ninit[]
 end
 
-@testset "@init called once" begin
+function test_at_init_called_once()
     @testset "default" begin
         @test probe_init(1:(Threads.nthreads() * 100)) == Threads.nthreads()
     end
@@ -256,7 +256,22 @@ end
     end
 end
 
-@testset "unprocessed @reduce" begin
+function init_is_private(xs, ex = nothing)
+    @floop ex for x in xs
+        @init p = []
+        push!(p, x)
+        y = pop!(p)
+        @reduce s += y
+    end
+    return (sum = s, isdefined_p = @isdefined(p))
+end
+
+function test_init_is_private()
+    @test init_is_private(1:10) == (sum = sum(1:10), isdefined_p = false)
+    @test init_is_private(1:10, SequentialEx()) == (sum = sum(1:10), isdefined_p = false)
+end
+
+function test_unprocessed_at_reduce()
     err = try
         @reduce(s += y, p *= y)
         nothing
@@ -267,7 +282,7 @@ end
     @test occursin("used outside `@floop`", sprint(showerror, err))
 end
 
-@testset "unprocessed @init" begin
+function test_unprocessed_at_init()
     err = try
         @init x = 0
         nothing
@@ -278,7 +293,7 @@ end
     @test occursin("used outside `@floop`", sprint(showerror, err))
 end
 
-@testset "invalid @init" begin
+function test_invalid_at_init()
     @testset "toplevel" begin
         err = try
             @eval @init(a)
@@ -314,7 +329,7 @@ end
     end
 end
 
-@testset "duplicated accumulators" begin
+function test_duplicated_accumulators()
     err = try
         @eval @macroexpand @floop for x in xs
            @reduce(y += x, y += x)
