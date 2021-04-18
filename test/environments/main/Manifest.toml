@@ -77,10 +77,10 @@ uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 version = "0.26.3"
 
 [[FLoops]]
-deps = ["Compat", "FLoopsBase", "JuliaVariables", "MLStyle", "Setfield", "Transducers"]
+deps = ["Compat", "FLoopsBase", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
 path = "../../.."
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
-version = "0.1.9-DEV"
+version = "0.1.11-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
@@ -89,7 +89,7 @@ uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
 version = "0.1.0"
 
 [[FLoopsTests]]
-deps = ["BangBang", "ContextVariablesX", "Distributed", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Test", "Transducers"]
+deps = ["BangBang", "ContextVariablesX", "Distributed", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Serialization", "Test", "Transducers"]
 path = "../../FLoopsTests"
 uuid = "1c45e723-db3a-42a1-a87c-e007e67bfd87"
 version = "0.1.0"
