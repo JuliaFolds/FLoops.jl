@@ -32,9 +32,9 @@ uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
 version = "3.31.0"
 
 [[CompositionsBase]]
-git-tree-sha1 = "f3955eb38944e5dd0fabf8ca1e267d94941d34a5"
+git-tree-sha1 = "455419f7e328a1a2493cabc6428d79e951349769"
 uuid = "a33af91c-f02d-484b-be07-31d278c5ca2b"
-version = "0.1.0"
+version = "0.1.1"
 
 [[ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -148,9 +148,9 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[Literate]]
 deps = ["Base64", "IOCapture", "JSON", "REPL"]
-git-tree-sha1 = "501a1a74a0c825037860d36d87d703e987d39dbc"
+git-tree-sha1 = "2a5b07cb13c9988cd7ee737df9f45eabbfab151c"
 uuid = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
-version = "2.8.1"
+version = "2.9.0"
 
 [[LiterateTest]]
 deps = ["Test"]
