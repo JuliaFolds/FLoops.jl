@@ -1,5 +1,14 @@
-has_boxed_variables(f::F) where {F} =
+# Julia 1.7 doesn't infer this:
+has_boxed_variables_f(f::F) where {F} =
     _any(ntuple(i -> fieldtype(typeof(f), i) <: Core.Box, Val(nfields(f)))...)
+
+@generated has_boxed_variables_g(::F) where {F} = any(t -> t <: Core.Box, fieldtypes(F))
+
+if VERSION < v"1.7"
+    const has_boxed_variables = has_boxed_variables_f
+else
+    const has_boxed_variables = has_boxed_variables_g
+end
 
 function verify_no_boxes(f::F) where {F}
     has_boxed_variables(f) && throw(HasBoxedVariableError(f))
