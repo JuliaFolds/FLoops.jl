@@ -4,7 +4,7 @@ has_boxed_variables_f(f::F) where {F} =
 
 @generated has_boxed_variables_g(::F) where {F} = any(t -> t <: Core.Box, fieldtypes(F))
 
-if VERSION < v"1.7"
+if VERSION < v"1.7-"
     const has_boxed_variables = has_boxed_variables_f
 else
     const has_boxed_variables = has_boxed_variables_g
