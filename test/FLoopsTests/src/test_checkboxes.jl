@@ -78,7 +78,7 @@ function with_box_10()
     Val(has_boxed_variables(closure))
 end
 
-function test_Inferrability()
+function test_inferrability()
     @test @inferred(with_box_1()) == Val(true)
     @test @inferred(with_box_3()) == Val(true)
     @test @inferred(with_box_7()) == Val(true)
