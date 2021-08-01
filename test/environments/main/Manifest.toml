@@ -98,7 +98,7 @@ uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
 version = "0.1.0"
 
 [[FLoopsTests]]
-deps = ["BangBang", "ContextVariablesX", "Distributed", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Serialization", "Test", "Transducers"]
+deps = ["BangBang", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Random", "Serialization", "Test", "Transducers"]
 path = "../../FLoopsTests"
 uuid = "1c45e723-db3a-42a1-a87c-e007e67bfd87"
 version = "0.1.0"
@@ -284,6 +284,14 @@ version = "1.0.4"
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[TestFunctionRunner]]
+deps = ["Distributed", "LoadAllPackages", "Pkg", "Test"]
+git-tree-sha1 = "4e314f5547d237ac8af3686200bfb2a3a36ecf14"
+repo-rev = "master"
+repo-url = "https://github.com/tkf/TestFunctionRunner.jl"
+uuid = "792026f5-ac9a-4a19-adcb-47b0ce2deb5d"
+version = "0.1.0"
 
 [[Transducers]]
 deps = ["ArgCheck", "BangBang", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]

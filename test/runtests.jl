@@ -1,2 +1,2 @@
-include("load.jl")
-FLoopsTests.runtests()
+using TestFunctionRunner
+TestFunctionRunner.@run
