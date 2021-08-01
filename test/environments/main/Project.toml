@@ -1,4 +1,5 @@
 [deps]
+Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 FLoops = "cc61a311-1640-44b5-9fba-1b764f453329"
 FLoopsTests = "1c45e723-db3a-42a1-a87c-e007e67bfd87"
 TestFunctionRunner = "792026f5-ac9a-4a19-adcb-47b0ce2deb5d"
