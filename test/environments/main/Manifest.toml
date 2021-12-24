@@ -281,17 +281,20 @@ git-tree-sha1 = "c45dcc27331febabc20d86cb3974ef095257dcf3"
 uuid = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 version = "1.0.4"
 
+[[Terminators]]
+git-tree-sha1 = "e72e157c08773595052733e8b39944a49b0109d9"
+uuid = "b0858c3f-a9bf-4cba-a0e3-6aaeea5477ac"
+version = "0.1.1"
+
 [[Test]]
 deps = ["Distributed", "InteractiveUtils", "Logging", "Random"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[TestFunctionRunner]]
-deps = ["Distributed", "LoadAllPackages", "Pkg", "Test"]
-git-tree-sha1 = "78a77e769b8e10276da5b68eff22232449de8766"
-repo-rev = "master"
-repo-url = "https://github.com/tkf/TestFunctionRunner.jl"
+deps = ["Distributed", "LoadAllPackages", "Pkg", "Terminators", "Test"]
+git-tree-sha1 = "9b4dc94c31f85a386e7e7793d78dd4c237f8cfdc"
 uuid = "792026f5-ac9a-4a19-adcb-47b0ce2deb5d"
-version = "0.1.0"
+version = "0.1.4"
 
 [[Transducers]]
 deps = ["ArgCheck", "BangBang", "CompositionsBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]
