@@ -19,7 +19,7 @@ JuliaVariables = "0.2"
 MLStyle = "0.3, 0.4"
 Setfield = "0.3, 0.4, 0.5, 0.6, 0.7, 0.8"
 Transducers = "0.4.55"
-julia = "1"
+julia = "1.6"
 
 [extras]
 BangBang = "198e06fe-97b7-11e9-32a5-e1d131e6ad66"
