@@ -45,6 +45,8 @@ end
 is_rebinding_update(ex) =
     ex isa Expr && length(ex.args) == 2 && is_rebinding_update_op(ex.head)
 
+is_dot_update(ex) = ex isa Expr && length(ex.args) == 2 && is_dot_update_op(ex.head)
+
 function is_rebinding_update_op(sym::Symbol)
     s = String(sym)
     endswith(s, "=") || return false
@@ -52,3 +54,24 @@ function is_rebinding_update_op(sym::Symbol)
     Base.isbinaryoperator(op) || return false
     return !isdefined(Base, sym)  # handle `<=` etc.
 end
+
+function is_dot_update_op(sym::Symbol)
+    s = String(sym)
+    startswith(s, ".") && endswith(s, "=") || return false
+    op = Symbol(s[2:end-1])
+    return Base.isbinaryoperator(op)
+end
+
+function is_dot_op(sym::Symbol)
+    s = String(sym)
+    startswith(s, ".") || return false
+    op = Symbol(s[2:end])
+    return Base.isbinaryoperator(op)
+end
+
+is_dotcall(ex) =
+    if isexpr(ex, :call)
+        length(ex.args) > 1 && is_dot_op(ex.args[1])
+    else
+        isexpr(ex, :., 2) && isexpr(ex.args[2], :tuple)
+    end

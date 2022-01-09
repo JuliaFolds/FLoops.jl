@@ -23,6 +23,7 @@ end FLoops
 export @floop, @init, @reduce, DistributedEx, SequentialEx, ThreadedEx
 
 using Base.Meta: isexpr
+using BangBang: materialize!!
 using FLoopsBase: EXTRA_STATE_VARIABLES
 using JuliaVariables: JuliaVariables, Var, simplify_ex
 using MLStyle: @match

@@ -64,6 +64,27 @@ function test_findminmax()
     @test (ymin, imin) == (0, 1)
 end
 
+function check_broadcast(xs)
+    ys = nothing
+    vs = 1:2:11
+    @floop for x in xs
+        @reduce ys .+= vs .== x
+    end
+    return ys
+    @test ys == [ones(Int, 5); 0]
+end
+
+function test_broadcast()
+    function desired(n)
+        m = cld(n, 2)
+        return [ones(Int, m); zeros(Int, 6 - m)]
+    end
+    @test check_broadcast(1:0) === nothing
+    @testset for n in 1:11
+        @test check_broadcast(1:n) == desired(n)
+    end
+end
+
 function test_break()
     @floop for x in 1:10
         @reduce(s += x)
