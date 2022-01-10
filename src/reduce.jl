@@ -151,7 +151,7 @@ function analyze_loop_local_variables!(spec::Union{ReduceOpSpec,InitSpec}, scope
     unique!(spec.visible)
     nothing
 end
-analyze_loop_local_variables!(expr::Expr, scopes) =
+function analyze_loop_local_variables!(expr::Expr, scopes)
     @match expr begin
         Expr(:scoped, sc, inner) => begin
             push!(scopes, sc)
@@ -165,6 +165,7 @@ analyze_loop_local_variables!(expr::Expr, scopes) =
             end
         end
     end
+end
 analyze_loop_local_variables!(@nospecialize(_), _) = nothing
 
 """ Fill `visible` field of `ReduceOpSpec` and `InitSpec` in-place. """
@@ -213,7 +214,7 @@ function unpack_kwargs(;
     otherwise = donothing,
     on_expr = otherwise,
     on_init = otherwise,
-    kwargs...
+    kwargs...,
 )
     @assert isempty(kwargs)
     return (otherwise, on_expr, on_init)
@@ -234,18 +235,8 @@ function on_reduce_op_spec(on_spec, ex; kwargs...)
     end
 end
 
-on_reduce_op_spec_reconstructing(
-    on_spec,
-    ex;
-    otherwise = identity,
-    on_init = otherwise,
-) = on_reduce_op_spec(
-    on_spec,
-    ex;
-    on_expr = Expr,
-    otherwise = otherwise,
-    on_init = on_init,
-)
+on_reduce_op_spec_reconstructing(on_spec, ex; otherwise = identity, on_init = otherwise) =
+    on_reduce_op_spec(on_spec, ex; on_expr = Expr, otherwise = otherwise, on_init = on_init)
 
 is_parallel(ex) = on_reduce_op_spec(
     _ -> true,
@@ -298,11 +289,12 @@ function analyze_rf_args(ex::Expr)
     if !isempty(inits) && length(inits) != length(inputs)
         # TODO: Remove this restriction.  If not all `init`s are
         # specified, use it only for the empty case.
-        throw(ArgumentError(string(
+        msg = string(
             "[NOT IMPLEMENTED]",
             " Currently, initial value should be specified for all accumulators",
             " when it is specified for at least one accumulator.",
-        )))
+        )
+        throw(ArgumentError(msg))
     end
     if isempty(inits)
         inits = nothing
@@ -350,7 +342,7 @@ function uniquify_inputs(inputs)
     pre_updates = Expr[]
     seen = Set{eltype(inputs)}()
     for x in inputs
-        if x in seen 
+        if x in seen
             y = gensym(x)
             push!(pre_updates, :($y = $x))
         else
@@ -486,7 +478,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
                 ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
                 accs = [x.args[1] for x in opspecs]
                 inits = nothing
-                (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
+                (inputs, pre_updates) =
+                    extract_pre_updates([x.args[2] for x in opspecs])
             elseif all(x -> isexpr(x, :(=), 2) && isexpr(x.args[2], :call, 3), opspecs)
                 # handle: @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
                 ops = [x.args[2].args[1] for x in opspecs]

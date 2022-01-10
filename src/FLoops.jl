@@ -7,18 +7,15 @@ module FLoops
     doc = replace(doc, r"^```julia"m => "```jldoctest README")
     doc = replace(
         doc,
-        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/sequential/" =>
-            "@ref tutorials-sequential",
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/sequential/" => "@ref tutorials-sequential",
     )
     doc = replace(
         doc,
-        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/#tutorials-executor" =>
-            "@ref tutorials-executor",
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/#tutorials-executor" => "@ref tutorials-executor",
     )
     doc = replace(
         doc,
-        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/" =>
-            "@ref tutorials-parallel",
+        "https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/" => "@ref tutorials-parallel",
     )
     doc
 end FLoops

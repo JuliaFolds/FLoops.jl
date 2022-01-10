@@ -22,8 +22,7 @@ end
 function Base.showerror(io::IO, err::HasBoxedVariableError)
     f = err.f
     varnames = [
-        fieldname(typeof(f), i)
-        for i in 1:nfields(f) if fieldtype(typeof(f), i) <: Core.Box
+        fieldname(typeof(f), i) for i in 1:nfields(f) if fieldtype(typeof(f), i) <: Core.Box
     ]
 
     print(io, "HasBoxedVariableError: Closure ")
