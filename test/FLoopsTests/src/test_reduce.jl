@@ -249,10 +249,10 @@ end
 
 function test_at_init_called_once()
     @testset "default" begin
-        @test probe_init(1:(Threads.nthreads() * 100)) == Threads.nthreads()
+        @test probe_init(1:(Threads.nthreads()*100)) == Threads.nthreads()
     end
     @testset "SequentialEx" begin
-        @test probe_init(1:(Threads.nthreads() * 100), SequentialEx()) == 1
+        @test probe_init(1:(Threads.nthreads()*100), SequentialEx()) == 1
     end
 end
 
@@ -332,7 +332,7 @@ end
 function test_duplicated_accumulators()
     err = try
         @eval @macroexpand @floop for x in xs
-           @reduce(y += x, y += x)
+            @reduce(y += x, y += x)
         end
         nothing
     catch err

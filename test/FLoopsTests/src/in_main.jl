@@ -1,12 +1,10 @@
 import FLoops
 
-let sumwith,
-    useinit,
-    smoketest
+let sumwith, useinit, smoketest
 
     function sumwith(f, xs, ex = nothing)
         FLoops.@floop ex for x in xs
-            FLoops.@reduce s += f(x) 
+            FLoops.@reduce s += f(x)
         end
         return s
     end
