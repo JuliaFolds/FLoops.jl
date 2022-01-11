@@ -31,3 +31,9 @@ See also:
 * [`Transducers.ThreadedEx`](https://juliafolds.github.io/Transducers.jl/dev/reference/manual/#Transducers.ThreadedEx)
 * [`Transducers.DistributedEx`](https://juliafolds.github.io/Transducers.jl/dev/reference/manual/#Transducers.DistributedEx)
 * [How is a parallel `@floop` executed? What is the scheduling strategy?](@ref faq-exeuctor)
+
+## `FLoops.assistant`
+
+```@docs
+FLoops.assistant
+```

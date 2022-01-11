@@ -561,7 +561,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 
     body2, info = transform_loop_body(body1, accs_symbols)
 
-    @gensym oninit_function reducing_function combine_function result
+    @gensym oninit_function reducing_function combine_function result context_function
     if ctx.module_ === Main
         # Ref: https://github.com/JuliaLang/julia/issues/39895
         oninit_function = Symbol(:__, oninit_function)
@@ -620,7 +620,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             $(combine_bodies...)
             return ($(accs_symbols...),)
         end
-        $_verify_no_boxes($reducing_function)
+        $context_function() = (; ctx = $ctx, id = $(QuoteNode(gensym(:floop_id))))
+        $_verify_no_boxes($reducing_function, $context_function)
         $result = $_fold(
             $wheninit(
                 $oninit_function,
