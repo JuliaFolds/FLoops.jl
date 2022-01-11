@@ -609,7 +609,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             quote
                 $grouped_accs = $result[$i]
                 ($(accs...),) = if $grouped_accs isa $_FLoopInit
-                    ($(inits...),)
+                    $unreachable_floop()
+                    # ($(inits...),)
                 else
                     $grouped_accs
                 end
@@ -657,6 +658,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 end
 
 struct _FLoopInit end
+
+@noinline unreachable_floop() = error("unrechable reached (FLoops.jl bug)")
 
 @inline _fold(rf::RF, coll, ::Nothing, simd) where {RF} =
     _fold(rf, coll, PreferParallel(), simd)
