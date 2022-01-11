@@ -159,7 +159,6 @@ end
 
 function sum_arrays(arrays, ex = nothing)
     @floop ex for x in arrays
-        # @reduce(s = zero(y) .+ y)  # TODO
         @reduce() do (s = zero(x); x)
             s .+= x
         end
@@ -179,6 +178,24 @@ function test_at_reduce_init_scope()
         end
         @test s == sum(1:10)
     end
+end
+
+function sum_arrays2(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @reduce(s = zero(x) + x)
+    end
+    try
+        return s
+    catch err
+        return err
+    end
+end
+
+function test_init_in_loop()
+    @test sum_arrays2([[1], [2], [3]]) == [sum(1:3)]
+    @test sum_arrays2([[1], [2], [3]], SequentialEx()) == [sum(1:3)]
+    @test sum_arrays2([]) == UndefVarError(:s)
+    @test sum_arrays2([], SequentialEx()) == UndefVarError(:s)
 end
 
 function maximum_partition_length(f, xs, ex = nothing)
