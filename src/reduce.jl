@@ -468,7 +468,6 @@ function process_reduce_op_spec(
         accs = [x.args[1] for x in opspecs]
         inits = nothing
 
-        allsymbol = true
         inputs = []
         pre_updates = []
         initializers = []
@@ -480,7 +479,6 @@ function process_reduce_op_spec(
                 input = x
                 push!(initializers, :($a = $input))
             else
-                allsymbol = false
                 @gensym input
                 if is_dotcall(x)  # acc .⊗= f.(args...)
                     rhs = :($_lazydotcall.($x))
