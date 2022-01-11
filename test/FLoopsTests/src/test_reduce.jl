@@ -64,7 +64,25 @@ function test_findminmax()
     @test (ymin, imin) == (0, 1)
 end
 
-function check_broadcast(xs)
+function sum_arrays_broadcast(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @reduce s .+= x
+    end
+    try
+        return s
+    catch err
+        return err
+    end
+end
+
+function test_simple_broadcast()
+    @test sum_arrays_broadcast([[1], [2], [3]]) == [sum(1:3)]
+    @test sum_arrays_broadcast([[1], [2], [3]], SequentialEx()) == [sum(1:3)]
+    @test sum_arrays_broadcast([]) == UndefVarError(:s)
+    @test sum_arrays_broadcast([], SequentialEx()) == UndefVarError(:s)
+end
+
+function fused_broadcast(xs)
     ys = nothing
     vs = 1:2:11
     @floop for x in xs
@@ -73,14 +91,14 @@ function check_broadcast(xs)
     return ys
 end
 
-function test_broadcast()
+function test_fused_broadcast()
     function desired(n)
         m = cld(n, 2)
         return [ones(Int, m); zeros(Int, 6 - m)]
     end
-    @test check_broadcast(1:0) === nothing
+    @test fused_broadcast(1:0) === nothing
     @testset for n in 1:11
-        @test check_broadcast(1:n) == desired(n)
+        @test fused_broadcast(1:n) == desired(n)
     end
 end
 
