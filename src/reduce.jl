@@ -373,6 +373,55 @@ function inject_spec_expr_for_analysis(ex::Expr)
     return on_reduce_op_spec_reconstructing(on_reduce, ex; on_init = on_init)
 end
 
+function process_reduce_op_spec(
+    spec::ReduceOpSpec,
+)::NamedTuple{(:inits, :accs, :inputs, :pre_updates, :updaters)}
+    opspecs = spec.args::Vector{Any}
+
+    if length(opspecs) == 1 && is_function(opspecs[1])
+        # handle: @reduce() do ...
+        rf_ex, = opspecs
+        # rf_ex = :(((acc1; input1), ..., (accN; inputN)) -> rf_body)
+        accs, inits, inputs = analyze_rf_args(rf_ex.args[1])
+        rf_body = rf_ex.args[2]
+        pre_updates = []
+        updaters = [rf_body]
+        return (;
+            inits = inits,
+            accs = accs,
+            inputs = inputs,
+            pre_updates = pre_updates,
+            updaters = updaters,
+        )
+    end
+
+    if all(is_rebinding_update, opspecs)
+        # handle: @reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
+        ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
+        accs = [x.args[1] for x in opspecs]
+        inits = nothing
+        (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
+    elseif all(x -> isexpr(x, :(=), 2) && isexpr(x.args[2], :call, 3), opspecs)
+        # handle: @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
+        ops = [x.args[2].args[1] for x in opspecs]
+        accs = [x.args[1] for x in opspecs]
+        inits = [x.args[2].args[2] for x in opspecs]
+        (inputs, pre_updates) = extract_pre_updates([x.args[2].args[3] for x in opspecs])
+    else
+        error(join(vcat(["unsupported:"], opspecs), "\n"))
+    end
+    inputs, pre_updates2 = uniquify_inputs(inputs)
+    append!(pre_updates, pre_updates2)
+    updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
+    return (;
+        inits = inits,
+        accs = accs,
+        inputs = inputs,
+        pre_updates = pre_updates,
+        updaters = updaters,
+    )
+end
+
 function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, executor)
     body0 = deepcopy(body0)  # To be mutated by `fill_loop_local_variables!`.
     dummy_loop_body = quote  # Dummy expression that simulates the loop body for JuliaVariables.
@@ -460,40 +509,11 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
 
     body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do spec
-        opspecs = spec.args
+        spec = spec::ReduceOpSpec
         @gensym grouped_accs grouped_inputs
         push!(accs_symbols, grouped_accs)
         push!(inputs_symbols, grouped_inputs)
-        if length(opspecs) == 1 && is_function(opspecs[1])
-            # handle: @reduce() do ...
-            rf_ex, = opspecs
-            # rf_ex = :(((acc1; input1), ..., (accN; inputN)) -> rf_body)
-            accs, inits, inputs = analyze_rf_args(rf_ex.args[1])
-            rf_body = rf_ex.args[2]
-            pre_updates = []
-            updaters = [rf_body]
-        else
-            if all(is_rebinding_update, opspecs)
-                # handle: @reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
-                ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
-                accs = [x.args[1] for x in opspecs]
-                inits = nothing
-                (inputs, pre_updates) =
-                    extract_pre_updates([x.args[2] for x in opspecs])
-            elseif all(x -> isexpr(x, :(=), 2) && isexpr(x.args[2], :call, 3), opspecs)
-                # handle: @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
-                ops = [x.args[2].args[1] for x in opspecs]
-                accs = [x.args[1] for x in opspecs]
-                inits = [x.args[2].args[2] for x in opspecs]
-                (inputs, pre_updates) =
-                    extract_pre_updates([x.args[2].args[3] for x in opspecs])
-            else
-                error(join(vcat(["unsupported:"], opspecs), "\n"))
-            end
-            inputs, pre_updates2 = uniquify_inputs(inputs)
-            append!(pre_updates, pre_updates2)
-            updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
-        end
+        (inits, accs, inputs, pre_updates, updaters) = process_reduce_op_spec(spec)
         push!(is_init, false)
         push!(all_rf_inits, inits)
         push!(all_rf_accs, accs)
