@@ -36,4 +36,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TestFunctionRunner = "792026f5-ac9a-4a19-adcb-47b0ce2deb5d"
 
 [targets]
-test = ["BangBang", "Distributed", "Documenter", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Test", "TestFunctionRunner"]
+test = ["Distributed", "Documenter", "Future", "LiterateTest", "LoadAllPackages", "MicroCollections", "PerformanceTestTools", "Random", "Test", "TestFunctionRunner"]
