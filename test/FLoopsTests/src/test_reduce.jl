@@ -71,7 +71,6 @@ function check_broadcast(xs)
         @reduce ys .+= vs .== x
     end
     return ys
-    @test ys == [ones(Int, 5); 0]
 end
 
 function test_broadcast()
