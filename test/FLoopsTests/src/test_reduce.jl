@@ -64,6 +64,73 @@ function test_findminmax()
     @test (ymin, imin) == (0, 1)
 end
 
+function sum_arrays_broadcast(arrays, ex = nothing)
+    @floop ex for x in arrays
+        @reduce s .+= x
+    end
+    try
+        return s
+    catch err
+        return err
+    end
+end
+
+function test_simple_broadcast()
+    @test sum_arrays_broadcast([[1], [2], [3]]) == [sum(1:3)]
+    @test sum_arrays_broadcast([[1], [2], [3]], SequentialEx()) == [sum(1:3)]
+    @test sum_arrays_broadcast([]) == UndefVarError(:s)
+    @test sum_arrays_broadcast([], SequentialEx()) == UndefVarError(:s)
+end
+
+function fused_broadcast(xs)
+    ys = nothing
+    vs = 1:2:11
+    @floop for x in xs
+        @reduce ys .+= vs .== x
+    end
+    return ys
+end
+
+function test_fused_broadcast()
+    function desired(n)
+        m = cld(n, 2)
+        return [ones(Int, m); zeros(Int, 6 - m)]
+    end
+    @test fused_broadcast(1:0) === nothing
+    @testset for n in 1:11
+        @test fused_broadcast(1:n) == desired(n)
+    end
+end
+
+⊕(a, b) = a .+ b
+
+function mixed_broadcasts(xs)
+    @floop for x in xs
+        @reduce(
+            a .+= x,              # symbol
+            b .+= isodd.(x),      # dot call
+            c .+= .√(x),          # unary dot op
+            d .+= x .- 1,         # binary dot op
+            e .+= prod(x),        # normal call
+            f .+= x ⊕ 1,          # normal binary op
+            g .+= -x,             # normal unary op
+        )
+    end
+    try
+        return (a = a, b = b, c = c, d = d, e = e, f = f, g = g)
+    catch err
+        return err
+    end
+end
+
+function test_mixed_broadcasts()
+    @test mixed_broadcasts([[4], [9]]) ==
+          (a = [13], b = [1], c = [5], d = [11], e = 13, f = [15], g = [-13])
+    @test mixed_broadcasts([[4]]) ==
+          (a = [4], b = [0], c = [2], d = [3], e = 4, f = [5], g = [-4])
+    @test mixed_broadcasts(1:0) == UndefVarError(:a)
+end
+
 function test_break()
     @floop for x in 1:10
         @reduce(s += x)
