@@ -102,6 +102,28 @@ function test_fused_broadcast()
     end
 end
 
+function mixed_broadcasts(xs)
+    @floop for x in xs
+        @reduce(
+            a .+= x,              # symbol
+            b .+= isodd.(x),      # dot call
+            c .+= .√(x),          # unary dot op
+            d .+= x .- 1,         # binary dot op
+        )
+    end
+    try
+        return (a = a, b = b, c = c, d = d)
+    catch err
+        return err
+    end
+end
+
+function test_mixed_broadcasts()
+    @test mixed_broadcasts([[4], [9]]) == (a = [13], b = [1], c = [5], d = [11])
+    @test mixed_broadcasts([[4]]) == (a = [4], b = [0], c = [2], d = [3])
+    @test mixed_broadcasts(1:0) == UndefVarError(:a)
+end
+
 function test_break()
     @floop for x in 1:10
         @reduce(s += x)
