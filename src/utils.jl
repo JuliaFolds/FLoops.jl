@@ -62,11 +62,12 @@ function is_dot_update_op(sym::Symbol)
     return Base.isbinaryoperator(op)
 end
 
+is_dot_op(_) = false
 function is_dot_op(sym::Symbol)
     s = String(sym)
     startswith(s, ".") || return false
     op = Symbol(s[2:end])
-    return Base.isbinaryoperator(op)
+    return Base.isoperator(op)
 end
 
 is_dotcall(ex) =
