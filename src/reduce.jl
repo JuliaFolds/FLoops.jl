@@ -590,13 +590,13 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
 
     unpackers = map(
-        enumerate(zip(is_init, all_rf_accs, all_rf_inits)),
-    ) do (i, (nounpack, accs, inits))
+        enumerate(zip(is_init, all_rf_accs, all_rf_inits, init_exprs)),
+    ) do (i, (nounpack, accs, inits, ex))
         @gensym grouped_accs
         if nounpack
             # This accumulator is from `@init`.
             nothing
-        elseif inits === nothing
+        elseif inits === nothing || ex === _FLoopInit()
             quote
                 $grouped_accs = $result[$i]
                 # Assign to accumulator only if it is updated at least once:
@@ -609,8 +609,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             quote
                 $grouped_accs = $result[$i]
                 ($(accs...),) = if $grouped_accs isa $_FLoopInit
-                    $unreachable_floop()
-                    # ($(inits...),)
+                    ($(inits...),)
                 else
                     $grouped_accs
                 end
@@ -658,8 +657,6 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 end
 
 struct _FLoopInit end
-
-@noinline unreachable_floop() = error("unrechable reached (FLoops.jl bug)")
 
 @inline _fold(rf::RF, coll, ::Nothing, simd) where {RF} =
     _fold(rf, coll, PreferParallel(), simd)
