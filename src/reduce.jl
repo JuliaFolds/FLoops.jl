@@ -609,6 +609,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             quote
                 $grouped_accs = $result[$i]
                 ($(accs...),) = if $grouped_accs isa $_FLoopInit
+                    error("DEBUG: empty loop")
                     ($(inits...),)
                 else
                     $grouped_accs
