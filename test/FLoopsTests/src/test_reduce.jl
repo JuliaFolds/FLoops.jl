@@ -141,10 +141,21 @@ function sum_onehot(indices, ex = nothing)
     return h
 end
 
+function sum_prealloc_onehot(indices, ex = nothing)
+    l, h = extrema(indices)
+    n = h - l + 1
+    @floop ex for i in indices
+        @reduce h .= zeros(Int, n) .+ OneHotVector(i - l + 1 => 1, n)
+    end
+    return h
+end
+
 function test_onehot()
     @testset "$(repr(ex))" for ex in [SequentialEx(), nothing]
         @test sum_onehot(1:3, ex) == [1, 1, 1]
         @test sum_onehot([1, 2, 4, 1], ex) == [2, 1, 0, 1]
+        @test sum_prealloc_onehot(1:3, ex) == [1, 1, 1]
+        @test sum_prealloc_onehot([1, 2, 4, 1], ex) == [2, 1, 0, 1]
     end
 end
 

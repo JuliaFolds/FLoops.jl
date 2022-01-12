@@ -76,3 +76,10 @@ is_dotcall(ex) =
     else
         isexpr(ex, :., 2) && isexpr(ex.args[2], :tuple)
     end
+
+is_dotcall(ex, nargs) =
+    if isexpr(ex, :call)
+        length(ex.args) == nargs + 1 && is_dot_op(ex.args[1])
+    else
+        isexpr(ex, :., 2) && isexpr(ex.args[2], :tuple, nargs)
+    end
