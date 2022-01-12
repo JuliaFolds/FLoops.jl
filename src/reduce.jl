@@ -336,6 +336,8 @@ function extract_pre_updates(raw_inputs)
             push!(inputs, input)
         end
     end
+    inputs, pre_updates2 = uniquify_inputs(inputs)
+    append!(pre_updates, pre_updates2)
     return (inputs, pre_updates)
 end
 
@@ -459,45 +461,39 @@ function process_reduce_op_spec(
         )
     end
 
-    initializers = nothing
-    need_materialize = false
-    if all(is_dot_update, opspecs)
+    if all(is_dot_update, opspecs)  # [^broadcasted_reduction]
         # handle: @reduce(acc₁ .op₁= x₁, ..., accₙ .opₙ= xₙ)
-        need_materialize = true
         ops = [Symbol(String(x.head)[2:end-1]) for x in opspecs]
         accs = [x.args[1] for x in opspecs]
         inits = nothing
-
-        inputs = []
-        pre_updates = []
-        initializers = []
-        for expr in opspecs
-            a = expr.args[1]  # acc
-            x = expr.args[2]  # input
-            local input::Symbol
-            if x isa Symbol
-                input = x
-                push!(initializers, :($a = $input))
+        (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
+        pre_updates = map(pre_updates) do x
+            if is_dotcall(x)
+                # i.e., `x` is `f.(args...)` of `acc .⊗= f.(args...)``
+                :($_lazydotcall.($x))
             else
-                @gensym input
-                if is_dotcall(x)  # acc .⊗= f.(args...)
-                    rhs = :($_lazydotcall.($x))
-
-                    # Since the arguments of the broadcasted object may be
-                    # invalid in the next iteration (e.g., it contains a
-                    # temporary buffer), we need to materialize `rhs` right away
-                    # in the first iteration.
-                    instantiate = GlobalRef(Broadcast, :instantiate)
-                    push!(initializers, :($a = $copy($instantiate($input))))
-                else
-                    rhs = x
-                    push!(initializers, :($a = $input))
-                end
-                push!(pre_updates, :($input = $rhs))
+                x
             end
-            push!(inputs, input)
         end
-    elseif all(is_rebinding_update, opspecs)
+        initializers = [:($a = $InitialValue($op)) for (a, op) in zip(accs, ops)]
+
+        updaters = map(ops, accs, inputs) do op, a, x
+            broadcast_inplace!! = GlobalRef(@__MODULE__, :broadcast_inplace!!)
+            :($a = $broadcast_inplace!!($op, $a, $x))
+            # ^- mutate-or-widen version of `$a .= ($op).($a, $x)`
+        end
+        append!(initializers, updaters)
+        return (;
+            inits = inits,
+            accs = accs,
+            inputs = inputs,
+            pre_updates = pre_updates,
+            initializers = initializers,
+            updaters = updaters,
+        )
+    end
+
+    if all(is_rebinding_update, opspecs)
         # handle: @reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
         ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
         accs = [x.args[1] for x in opspecs]
@@ -512,22 +508,8 @@ function process_reduce_op_spec(
     else
         error(join(vcat(["unsupported:"], opspecs), "\n"))
     end
-    inputs, pre_updates2 = uniquify_inputs(inputs)
-    append!(pre_updates, pre_updates2)
-    if need_materialize
-        updaters = map(ops, accs, inputs) do op, a, x
-            materialize!! = GlobalRef(@__MODULE__, :materialize!!)
-            instantiate = GlobalRef(Broadcast, :instantiate)
-            broadcasted = GlobalRef(Broadcast, :broadcasted)
-            :($a = $materialize!!($a, $instantiate($broadcasted($op, $a, $x))))
-            # ^- mutate-or-widen version of `$a .= ($op).($a, $x)`
-        end
-    else
-        updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
-    end
-    if initializers === nothing
-        initializers = default_initializers(inits, accs, inputs, updaters)
-    end
+    updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
+    initializers = default_initializers(inits, accs, inputs, updaters)
     return (;
         inits = inits,
         accs = accs,
@@ -537,11 +519,37 @@ function process_reduce_op_spec(
         updaters = updaters,
     )
 end
+# [^broadcasted_reduction]: Broadcasted reduction of form `@reduce acc .⊕= $rhs`
+# is handled by stiching together functional components in BangBang and
+# InitialValues.  Thus, FLoops.jl is only responsible for a simple lowering
+# which roughly looks like the following:
+#
+#     acc = InitialValue(⊕)  # aside: actually called in the loop body
+#     for x in xs
+#         ...  # code before `@reduce`
+#
+#         input = $rhs  # or `_lazydotcall.($rhs)` if `$rhs` is a dot call
+#         acc = broadcast_inplace!!(⊕, acc, input)
+#
+#         ...  # code after `@reduce`
+#     end
+#
+# where `acc = broadcast_inplace!!(⊕, acc, input)` is a mutate-or-widen version
+# of `acc .⊕= input`.  By using `InitialValue(⊕)`, we can uniformly handle the
+# reduction by `broadcast_inplace!!`. Furthermore, we can delay the
+# initialization/materialization of `acc` until the right moment where size
+# information is available through `input`.
+#
+# In the real code, `acc = InitialValue(⊕)` is called inside the loop body to
+# handle the empty iteration consistently (i.e., do not assign variables if
+# `@reduce` statement is not evaluated).
 
 function default_initializers(inits, accs, inputs, updaters)
     if inits === nothing
+        # e.g., lower `acc += input` to `acc = input`
         initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
     else
+        # e.g., lower `acc = op(init, input)` to `acc = init; acc = op(acc, input)`
         initializers = [:($a = $x) for (a, x) in zip(accs, inits)]
         append!(initializers, updaters)
     end
