@@ -122,11 +122,11 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 
 [[InitialValues]]
-git-tree-sha1 = "c1fdd7a5169e200760a5c573ed978d21c98a10b1"
-repo-rev = "broadcasting"
+git-tree-sha1 = "4da0f88e9a39111c2fa3add390ab15f3a44f3ca3"
+repo-rev = "release"
 repo-url = "https://github.com/JuliaFolds/InitialValues.jl.git"
 uuid = "22cec73e-a1b8-11e9-2c92-598750a2cf9c"
-version = "0.3.1-DEV"
+version = "0.3.1"
 
 [[InteractiveUtils]]
 deps = ["Markdown"]
