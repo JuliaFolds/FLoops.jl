@@ -189,11 +189,11 @@ uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[MicroCollections]]
 deps = ["BangBang", "InitialValues", "Setfield"]
-git-tree-sha1 = "2362e4e902f6ea0033a1cf801489603f5763dea1"
-repo-rev = "onehot"
+git-tree-sha1 = "6bb7786e4f24d44b4e29df03c69add1b63d88f01"
+repo-rev = "release"
 repo-url = "https://github.com/JuliaFolds/MicroCollections.jl.git"
 uuid = "128add7d-3638-4c79-886c-908ea0c25c34"
-version = "0.1.2-DEV"
+version = "0.1.2"
 
 [[Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
