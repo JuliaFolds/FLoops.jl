@@ -32,3 +32,14 @@ jobs:
           file: ./lcov.info
           flags: Run.test
           name: codecov-umbrella
+
+  # A job that succeeds if and only if all jobs in `test` succeed.
+  check:
+    if: always() && github.event.pull_request
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      # https://github.com/tkf/merge-conclusions-action
+      - uses: tkf/merge-conclusions-action@v1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
