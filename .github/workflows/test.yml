@@ -34,7 +34,7 @@ jobs:
           name: codecov-umbrella
 
   # A job that succeeds if and only if all jobs in `test` succeed.
-  check:
+  all-success:
     if: always() && github.event.pull_request
     needs: test
     runs-on: ubuntu-latest
