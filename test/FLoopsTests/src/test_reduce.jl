@@ -142,7 +142,7 @@ function sum_onehot(indices, ex = nothing)
 end
 
 function test_onehot()
-    @testset for ex in [SequentialEx(), nothing]
+    @testset "$(repr(ex))" for ex in [SequentialEx(), nothing]
         @test sum_onehot(1:3, ex) == [1, 1, 1]
         @test sum_onehot([1, 2, 4, 1], ex) == [2, 1, 0, 1]
     end
