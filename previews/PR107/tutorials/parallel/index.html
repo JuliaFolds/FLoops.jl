@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Parallel loops · FLoops</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">FLoops</span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">FLoops.jl</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../sequential/">Sequential loops</a></li><li class="is-active"><a class="tocitem" href>Parallel loops</a><ul class="internal"><li><a class="tocitem" href="#Initialization-with-@reduce(acc-op(init,-x))-syntax"><span>Initialization with <code>@reduce(acc = op(init, x))</code> syntax</span></a></li><li><a class="tocitem" href="#Initialization-with-@reduce(acc-init-op-x)-syntax"><span>Initialization with <code>@reduce(acc = init op x)</code> syntax</span></a></li><li><a class="tocitem" href="#Complex-reduction-with-@reduce()-do-syntax"><span>Complex reduction with <code>@reduce() do</code> syntax</span></a></li><li><a class="tocitem" href="#Control-flow-syntaxes"><span>Control flow syntaxes</span></a></li><li><a class="tocitem" href="#tutorials-executor"><span>Executors</span></a></li></ul></li></ul></li><li><span class="tocitem">How-to guides</span><ul><li><a class="tocitem" href="../../howto/parallel/">How to do <em>X</em> in parallel?</a></li></ul></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference/api/">API</a></li><li><a class="tocitem" href="../../reference/syntax/">Syntax</a></li><li><a class="tocitem" href="../../reference/reduction/">Parallelizable reduction (WIP)</a></li></ul></li><li><span class="tocitem">Explanation</span><ul><li><a class="tocitem" href="../../explanation/faq/">FAQ</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li class="is-active"><a href>Parallel loops</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Parallel loops</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaFolds/FLoops.jl/blob/master/docs/src/tutorials/parallel.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="tutorials-parallel"><a class="docs-heading-anchor" href="#tutorials-parallel">Parallel loops</a><a id="tutorials-parallel-1"></a><a class="docs-heading-anchor-permalink" href="#tutorials-parallel" title="Permalink"></a></h1><p><code>@floop</code> supports parallel loops not only for side-effect (as in <code>Threads.@threads</code>) but also for complex reductions using the optional <code>@reduce</code> syntax.</p><p><code>@floop</code> is useful even without <code>@reduce</code> because it supports multiple <a href="#tutorials-executor">executors</a> for selecting specific execution mechanisms without rewriting your code. For example, <a href="https://github.com/JuliaFolds/FoldsThreads.jl">FoldsThreads.jl</a> provides additional rich set of thread-based executors from which you can choose an appropriate executor to maximize the performance of your program. <a href="https://github.com/JuliaFolds/FoldsCUDA.jl">FoldsCUDA.jl</a> provides an executor for GPU. FLoops.jl also provide a simple distributed executor.</p><p>For in-place update operations (i.e., <code>Threads.@threads</code>-like operations), you can use <code>@floop ThreadedEx() for</code>:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; function floop_map!(f, ys, xs, ex = ThreadedEx())
+           @floop ex for i in eachindex(ys, xs)
+               @inbounds ys[i] = f(xs[i])
+           end
+           return ys
+       end;
+
+julia&gt; floop_map!(x -&gt; x + 1, zeros(3), 1:3)
+3-element Array{Float64,1}:
+ 2.0
+ 3.0
+ 4.0</code></pre><p>For a parallel algorithm that requires reductions, you can use <code>@reduce(acc op= x)</code> syntax:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; @floop for (x, y) in zip(1:3, 1:2:6)
+           a = x + y
+           b = x - y
+           @reduce(s += a, t += b)
+       end
+       (s, t)
+(15, -3)</code></pre><p>With <code>@reduce</code>, the default executor is <code>ThreadedEx</code>.</p><h2 id="Initialization-with-@reduce(acc-op(init,-x))-syntax"><a class="docs-heading-anchor" href="#Initialization-with-@reduce(acc-op(init,-x))-syntax">Initialization with <code>@reduce(acc = op(init, x))</code> syntax</a><a id="Initialization-with-@reduce(acc-op(init,-x))-syntax-1"></a><a class="docs-heading-anchor-permalink" href="#Initialization-with-@reduce(acc-op(init,-x))-syntax" title="Permalink"></a></h2><p>Use <code>acc = op(init, x)</code> to specify that the identity element for the binary function <code>op</code> is <code>init</code>:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; using BangBang  # for `append!!`
+
+julia&gt; using MicroCollections  # for `EmptyVector` and `SingletonVector`
+
+julia&gt; @floop for x in 1:5
+           ys = SingletonVector(x)
+           if isodd(x)
+               @reduce(odds = append!!(EmptyVector(), ys))
+           else
+               @reduce(evens = append!!(EmptyVector(), ys))
+           end
+       end
+       (odds, evens)
+([1, 3, 5], [2, 4])</code></pre><h2 id="Initialization-with-@reduce(acc-init-op-x)-syntax"><a class="docs-heading-anchor" href="#Initialization-with-@reduce(acc-init-op-x)-syntax">Initialization with <code>@reduce(acc = init op x)</code> syntax</a><a id="Initialization-with-@reduce(acc-init-op-x)-syntax-1"></a><a class="docs-heading-anchor-permalink" href="#Initialization-with-@reduce(acc-init-op-x)-syntax" title="Permalink"></a></h2><p>When <code>op</code> is a binary operator, the infix syntax <code>acc = init op x</code> can also be used:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; @floop for (x, y) in zip(1:3, 1:2:6)
+           a = x + y
+           b = x - y
+           @reduce(s = 0im + a, t = 0im + b)
+       end
+       (s, t)
+(15 + 0im, -3 + 0im)</code></pre><p><strong>NOTE</strong>: In the above examples, statements like <code>odds = append!!(EmptyVector(), ys)</code> and <code>s = 0im + a</code> are <em>not</em> evaluated for each iteration.  These statements as-is are evaluated only for the first iteration (for each basecase) and then the expressions where the first argument is replaced by the corresponding LHS, i.e., <code>odds = append!!(odds, ys)</code> and <code>s = s + a</code>, are evaluated for the bulk of the loop.</p><h2 id="Complex-reduction-with-@reduce()-do-syntax"><a class="docs-heading-anchor" href="#Complex-reduction-with-@reduce()-do-syntax">Complex reduction with <code>@reduce() do</code> syntax</a><a id="Complex-reduction-with-@reduce()-do-syntax-1"></a><a class="docs-heading-anchor-permalink" href="#Complex-reduction-with-@reduce()-do-syntax" title="Permalink"></a></h2><p>For more complex reduction, use <code>@reduce() do</code> syntax:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; @floop for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
+           d = abs(v - w)
+           @reduce() do (dmax = -1; d), (imax = 0; i), (jmax = 0; j)
+               if isless(dmax, d)
+                   dmax = d
+                   imax = i
+                   jmax = j
+               end
+           end
+       end
+       (dmax, imax, jmax)
+(5, 1, 3)</code></pre><h3 id="How-to-read-a-loop-with-@reduce()-do-syntax"><a class="docs-heading-anchor" href="#How-to-read-a-loop-with-@reduce()-do-syntax">How to read a loop with <code>@reduce() do</code> syntax</a><a id="How-to-read-a-loop-with-@reduce()-do-syntax-1"></a><a class="docs-heading-anchor-permalink" href="#How-to-read-a-loop-with-@reduce()-do-syntax" title="Permalink"></a></h3><p>When reading code with <code>@reduce() do</code>, a quick way to understand it is to mentally comment out the line with <code>@reduce() do</code> and the corresponding <code>end</code>.  To get a full picture, move the initialization parts (in the above example, <code>dmax = -1</code>, <code>imax = 0</code>, and <code>jmax = 0</code>) to outside <code>for</code> loop:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; let
+           dmax = -1  # -+
+           imax = 0   #  | initializers
+           jmax = 0   # -+
+           for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
+               d = abs(v - w)
+               if isless(dmax, d)  # -+
+                   dmax = d        #  | `do` block body
+                   imax = i        #  |
+                   jmax = j        #  |
+               end                 # -+
+           end
+           (dmax, imax, jmax)
+       end
+(5, 1, 3)</code></pre><p>This exact transformation is used for defining the sequential basecase.  Consecutive basecases are combined using the code in the <code>do</code> block body.</p><h2 id="Control-flow-syntaxes"><a class="docs-heading-anchor" href="#Control-flow-syntaxes">Control flow syntaxes</a><a id="Control-flow-syntaxes-1"></a><a class="docs-heading-anchor-permalink" href="#Control-flow-syntaxes" title="Permalink"></a></h2><p>Control flow syntaxes such as <code>continue</code>, <code>break</code>, <code>return</code>, and <code>@goto</code> work with parallel loops:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; @floop for x in 1:10
+           y = 2x
+           @reduce() do (s; y)
+               s = y
+           end
+           x == 3 &amp;&amp; break
+       end
+       s
+6</code></pre><p><code>@reduce</code> can be used multiple times in a loop body</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; @floop for (i, v) in pairs([0, 1, 3, 2])
+           y = 2v
+           @reduce() do (ymax; y), (imax; i)
+               if isless(ymax, y)
+                   ymax = y
+                   imax = i
+               end
+           end
+           @reduce() do (ymin; y), (imin; i)
+               if isless(y, ymin)
+                   ymin = y
+                   imin = i
+               end
+           end
+       end
+       (ymax, imax), (ymin, imin)
+((6, 3), (0, 1))</code></pre><h2 id="tutorials-executor"><a class="docs-heading-anchor" href="#tutorials-executor">Executors</a><a id="tutorials-executor-1"></a><a class="docs-heading-anchor-permalink" href="#tutorials-executor" title="Permalink"></a></h2><p><code>@floop</code> takes optional executor argument to specify an execution strategies and the parameters of the strategy:</p><pre><code class="language-julia-repl">julia&gt; using FLoops
+
+julia&gt; function demo(executor)
+           @floop executor for x in 1:10
+               @reduce(s += x)
+           end
+           return s
+       end;
+
+julia&gt; demo(SequentialEx(simd = Val(true)))
+55
+
+julia&gt; demo(ThreadedEx(basesize = 2))
+55
+
+julia&gt; demo(DistributedEx(threads_basesize = 2))
+55</code></pre><p>This is in particular useful for the trick to <a href="https://juliafolds.github.io/data-parallelism/howto/faq/#set-nthreads-at-run-time">&quot;change&quot; the number of threads without restarting <code>julia</code> using <code>basesize</code> option</a>.</p><p>JuliaFolds provides additional executors:</p><ul><li><a href="https://github.com/JuliaFolds/FoldsThreads.jl">FoldsThreads.jl</a> provides a rich set of thread-based executors.</li><li><a href="https://github.com/JuliaFolds/FoldsCUDA.jl">FoldsCUDA.jl</a> provides <code>CUDAEx</code> for executing the parallel loop on GPU.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../sequential/">« Sequential loops</a><a class="docs-footer-nextpage" href="../../howto/parallel/">How to do <em>X</em> in parallel? »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Thursday 13 January 2022 05:35">Thursday 13 January 2022</span>. Using Julia version 1.4.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
