@@ -1,6 +1,7 @@
 module TestReduce
 
 using FLoops
+using MicroCollections
 using Test
 using Transducers: SplitBy
 
@@ -129,6 +130,22 @@ function test_mixed_broadcasts()
     @test mixed_broadcasts([[4]]) ==
           (a = [4], b = [0], c = [2], d = [3], e = 4, f = [5], g = [-4])
     @test mixed_broadcasts(1:0) == UndefVarError(:a)
+end
+
+function sum_onehot(indices, ex = nothing)
+    l, h = extrema(indices)
+    n = h - l + 1
+    @floop ex for i in indices
+        @inbounds @reduce h .+= OneHotVector(i - l + 1 => 1, n)
+    end
+    return h
+end
+
+function test_onehot()
+    @testset "$(repr(ex))" for ex in [SequentialEx(), nothing]
+        @test sum_onehot(1:3, ex) == [1, 1, 1]
+        @test sum_onehot([1, 2, 4, 1], ex) == [2, 1, 0, 1]
+    end
 end
 
 function test_break()
