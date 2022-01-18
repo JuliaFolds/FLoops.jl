@@ -88,9 +88,9 @@ version = "0.8.6"
 
 [[Documenter]]
 deps = ["ANSIColoredPrinters", "Base64", "Dates", "DocStringExtensions", "IOCapture", "InteractiveUtils", "JSON", "LibGit2", "Logging", "Markdown", "REPL", "Test", "Unicode"]
-git-tree-sha1 = "debe3a79cafb154d4fb9dec29cd8dd5b8ea95a57"
+git-tree-sha1 = "75c6cf9d99e0efc79b724f5566726ad3ad010a01"
 uuid = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-version = "0.27.11"
+version = "0.27.12"
 
 [[FLoops]]
 deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
