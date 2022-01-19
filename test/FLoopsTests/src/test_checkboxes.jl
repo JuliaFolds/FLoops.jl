@@ -1,13 +1,24 @@
 module TestCheckboxes
 
 using FLoops:
+    FLoops,
+    HasBoxedVariableError,
+    MacroContext,
     _box_detection_works,
     _make_closure_with_a_box,
     _make_closure_without_a_box,
     has_boxed_variables,
-    verify_no_boxes,
-    HasBoxedVariableError
+    verify_no_boxes
 using Test
+
+function with_assistant(f, mode)
+    result = FLoops.assistant(mode)
+    try
+        f()
+    finally
+        FLoops.assistant(Symbol(result.old))
+    end
+end
 
 function _make_closure_with_two_boxes()
     local a
@@ -20,10 +31,14 @@ function test__box_detection_works()
     @test _box_detection_works()
 end
 
+dummy_context() = (ctx = MacroContext(LineNumberNode(0), @__MODULE__), id = :dummy)
+
 function test_verify_no_boxes()
-    @test (verify_no_boxes(_make_closure_without_a_box()); true)
+    @test (verify_no_boxes(_make_closure_without_a_box(), dummy_context); true)
     f = _make_closure_with_a_box()
-    @test_throws HasBoxedVariableError(f) verify_no_boxes(f)
+    with_assistant(:error) do
+        @test_throws HasBoxedVariableError(f) verify_no_boxes(f, dummy_context)
+    end
 end
 
 function test_HasBoxedVariableError()
