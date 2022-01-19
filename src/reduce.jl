@@ -2,14 +2,16 @@
     @reduce() do (acc₁ [= init₁]; x₁), ..., (accₙ [= initₙ]; xₙ)
         ...
     end
-    @reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
-    @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
+    @reduce(acc₁ ⊗₁= x₁, ..., accₙ ⊗ₙ= xₙ)
+    @reduce(acc₁ .⊗₁= x₁, ..., accₙ .⊗ₙ= xₙ)
+    @reduce(acc₁ = ⊗₁(init₁, x₁), ..., accₙ = ⊗ₙ(initₙ, xₙ))
+    @reduce(acc₁ .= (⊗₁).(init₁, x₁), ..., accₙ = (⊗ₙ).(initₙ, xₙ))
 
 Declare how accumulators are updated in the sequential basecase and
 how the resulting accumulators from two basecases are combined.
 
 The arguments `accᵢ` and `xᵢ` must be symbols except for `xᵢ` of the
-last two forms in which an expression can be used at `xᵢ`.
+last three forms in which an expression can be used at `xᵢ`.
 
 In the first form,
 
@@ -22,7 +24,8 @@ end
 
 should be an associative function.
 
-In the last two forms, every `opᵢ` should be an associative function.
+In the last three forms, every binary operation `⊗ᵢ` should be an associative
+function.
 
 If `initᵢ` is specified, the tuple `(init₁, init₂, ..., initₙ)` should
 be the identify of the related associative function.  `accᵢ = initᵢ`
@@ -329,13 +332,30 @@ function extract_pre_updates(raw_inputs)
         if x isa Symbol
             push!(inputs, x)
         else
-            @gensym tmp
-            push!(pre_updates, :($tmp = $x))
-            push!(inputs, tmp)
+            @gensym input
+            push!(pre_updates, :($input = $x))
+            push!(inputs, input)
         end
     end
+    inputs, pre_updates2 = uniquify_inputs(inputs)
+    append!(pre_updates, pre_updates2)
     return (inputs, pre_updates)
 end
+
+function dematerialize_dotcall(ex)
+    if is_dotcall(ex)
+        :($_lazydotcall.($ex))
+    else
+        ex
+    end
+end
+
+function _lazydotcall end
+struct LazyDotCall{T}
+    value::T
+end
+@inline Broadcast.broadcasted(::typeof(_lazydotcall), x) = LazyDotCall(x)
+@inline Broadcast.materialize(x::LazyDotCall) = x.value
 
 function uniquify_inputs(inputs)
     uniquified = empty(inputs)
@@ -371,6 +391,223 @@ function inject_spec_expr_for_analysis(ex::Expr)
         :(throw($spec))
     end
     return on_reduce_op_spec_reconstructing(on_reduce, ex; on_init = on_init)
+end
+
+raw"""
+    process_reduce_op_spec(spec) ->
+        (; inits, accs, inputs, pre_updates, initializers, updaters)
+
+Process an invocation of `@reduce() do ...` or `@reduce(spec₁, spec₂, ...)`
+where each `specᵢ` is one of the following form
+
+    acc ⊗= input
+    acc .⊗= input
+    acc = ⊗(init, input)
+
+Roughly speaking, the processed results are injected to the loop body as follows
+(see `rf_body_with_init` for exactly how this happens):
+
+```
+local $(accs...)
+for x in xs
+    ...
+
+    # <- where `@reduce` is invoked
+    $(pre_updates...)       # assign $inputs
+    if $THIS_IS_THE_FIRST_ITERATION
+        $(initializers...)  # "per-task" lazy initialization occurs here
+    else
+        $(updaters...)      # the main update logic; e.g., `acc = acc + x`
+    end
+end
+```
+
+To combine `accs`, following expressions are injected to the `combine_function`:
+
+```julia
+function $combine_function(all_accs, all_inputs)
+    (..., ($(accs...),), ...) = all_accs      # results from left
+    (..., ($(inputs...),), ...) = all_inputs  # results from right
+    ...  # code from other reductions
+
+    if $RIGHT_IS_EMPTY
+        # do nothing; i.e., use the left result as-is
+    else
+        # Note: no $(pre_updates...) here
+        if $LEFT_IS_EMPTY
+            $(initializers...)
+        else
+            $(updaters...)
+        end
+    end
+
+    ...  # code from other reductions
+    return (..., ($(accs...),), ...)  # combined results
+end
+```
+"""
+function process_reduce_op_spec(
+    spec::ReduceOpSpec,
+)::NamedTuple{(:inits, :accs, :inputs, :pre_updates, :initializers, :updaters)}
+    opspecs = spec.args::Vector{Any}
+
+    if length(opspecs) == 1 && is_function(opspecs[1])
+        # handle: @reduce() do ...
+        rf_ex, = opspecs
+        # rf_ex = :(((acc1; input1), ..., (accN; inputN)) -> rf_body)
+        accs, inits, inputs = analyze_rf_args(rf_ex.args[1])
+        rf_body = rf_ex.args[2]
+        pre_updates = []
+        updaters = [rf_body]
+        initializers = default_initializers(inits, accs, inputs, updaters)
+        return (;
+            inits = inits,
+            accs = accs,
+            inputs = inputs,
+            pre_updates = pre_updates,
+            initializers = initializers,
+            updaters = updaters,
+        )
+    end
+
+    if all(is_dot_update, opspecs)  # [^broadcasted_reduction]
+        # handle: @reduce(acc₁ .op₁= x₁, ..., accₙ .opₙ= xₙ)
+        ops = [Symbol(String(x.head)[2:end-1]) for x in opspecs]
+        accs = [x.args[1] for x in opspecs]
+        inits = nothing
+        (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
+        initializers = [:($a = $InitialValue($op)) for (a, op) in zip(accs, ops)]
+        true
+    elseif all(x -> isexpr(x, :(.=), 2), opspecs)
+        if !all(x -> is_dotcall(x.args[2], 2), opspecs)
+            msg = sprint() do io
+                print(io, "`@reduce lhs .= rhs` syntax requires a binary dot call")
+                print(io, " (e.g., `a .+ b` or `f.(a, b)`) on the rhs; got:")
+                for (i, x) in pairs(opspecs)
+                    if !is_dotcall(x.args[2], 2)
+                        println(io)
+                        print(io, i, "-th op spec: ", opspecs[i])
+                    end
+                end
+            end
+            error(msg)
+        end
+        # handle: @reduce(acc₁ .= op₁.(init₁, x₁), ..., accₙ .= opₙ.(initₙ, xₙ))
+        accs, ops, inits, inputs =
+            opspecs |>
+            Map() do ex
+                acc, rhs = ex.args
+                if isexpr(rhs, :call, 3)
+                    dotop, init, input = rhs.args
+                    str = String(dotop)
+                    @assert startswith(str, ".")
+                    op = Symbol(str[2:end])
+                else
+                    @assert rhs.head == :. &&
+                            length(rhs.args) == 2 &&
+                            isexpr(rhs.args[2], :tuple, 2)
+                    op = rhs.args[1]
+                    init, input = rhs.args[2].args
+                end
+                (acc, op, init, input)
+            end |>
+            foldxl(ProductRF(push!!, push!!, push!!, push!!))
+        (inputs, pre_updates) = extract_pre_updates(inputs)
+
+        # Although we can't dematerialize `inits` since it could be hoisted out,
+        # we can dematerialize `inits` in the initializers since we know that
+        # they are followed by materializing `broadcast_inplace!!` call in the
+        # updaters.
+        initializers =
+            [:($a = $(dematerialize_dotcall(x))) for (a, x) in zip(accs, inits)]
+        true
+    elseif any(is_dot_update, opspecs) || any(x -> isexpr(x, :(.=), 2), opspecs)
+        error(
+            "`@reduce` currently requires all syntaxes to be similar",
+            " (e.g., don't mix `a .+= x` and `a .= 0 .+ x`); got:\n",
+            join(opspecs, "\n"),
+        )
+    else
+        false
+    end && begin
+        pre_updates = map(dematerialize_dotcall, pre_updates)
+        updaters = map(ops, accs, inputs) do op, a, x
+            broadcast_inplace!! = GlobalRef(@__MODULE__, :broadcast_inplace!!)
+            :($a = $broadcast_inplace!!($op, $a, $x))
+            # ^- mutate-or-widen version of `$a .= ($op).($a, $x)`
+        end
+        append!(initializers, updaters)
+        return (;
+            inits = inits,
+            accs = accs,
+            inputs = inputs,
+            pre_updates = pre_updates,
+            initializers = initializers,
+            updaters = updaters,
+        )
+    end
+
+    if all(is_rebinding_update, opspecs)
+        # handle: @reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
+        ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
+        accs = [x.args[1] for x in opspecs]
+        inits = nothing
+        (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
+    elseif all(x -> isexpr(x, :(=), 2) && isexpr(x.args[2], :call, 3), opspecs)
+        # handle: @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
+        ops = [x.args[2].args[1] for x in opspecs]
+        accs = [x.args[1] for x in opspecs]
+        inits = [x.args[2].args[2] for x in opspecs]
+        (inputs, pre_updates) = extract_pre_updates([x.args[2].args[3] for x in opspecs])
+    else
+        error(join(vcat(["unsupported:"], opspecs), "\n"))
+    end
+    updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
+    initializers = default_initializers(inits, accs, inputs, updaters)
+    return (;
+        inits = inits,
+        accs = accs,
+        inputs = inputs,
+        pre_updates = pre_updates,
+        initializers = initializers,
+        updaters = updaters,
+    )
+end
+# [^broadcasted_reduction]: Broadcasted reduction of form `@reduce acc .⊕= $rhs`
+# is handled by stiching together functional components in BangBang and
+# InitialValues.  Thus, FLoops.jl is only responsible for a simple lowering
+# which roughly looks like the following:
+#
+#     acc = InitialValue(⊕)  # aside: actually called in the loop body
+#     for x in xs
+#         ...  # code before `@reduce`
+#
+#         input = $rhs  # or `_lazydotcall.($rhs)` if `$rhs` is a dot call
+#         acc = broadcast_inplace!!(⊕, acc, input)
+#
+#         ...  # code after `@reduce`
+#     end
+#
+# where `acc = broadcast_inplace!!(⊕, acc, input)` is a mutate-or-widen version
+# of `acc .⊕= input`.  By using `InitialValue(⊕)`, we can uniformly handle the
+# reduction by `broadcast_inplace!!`. Furthermore, we can delay the
+# initialization/materialization of `acc` until the right moment where size
+# information is available through `input`.
+#
+# In the real code, `acc = InitialValue(⊕)` is called inside the loop body to
+# handle the empty iteration consistently (i.e., do not assign variables if
+# `@reduce` statement is not evaluated).
+
+function default_initializers(inits, accs, inputs, updaters)
+    if inits === nothing
+        # e.g., lower `acc += input` to `acc = input`
+        initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
+    else
+        # e.g., lower `acc = op(init, input)` to `acc = init; acc = op(acc, input)`
+        initializers = [:($a = $x) for (a, x) in zip(accs, inits)]
+        append!(initializers, updaters)
+    end
+    return initializers
 end
 
 function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, executor)
@@ -460,40 +697,12 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
 
     body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do spec
-        opspecs = spec.args
+        spec = spec::ReduceOpSpec
         @gensym grouped_accs grouped_inputs
         push!(accs_symbols, grouped_accs)
         push!(inputs_symbols, grouped_inputs)
-        if length(opspecs) == 1 && is_function(opspecs[1])
-            # handle: @reduce() do ...
-            rf_ex, = opspecs
-            # rf_ex = :(((acc1; input1), ..., (accN; inputN)) -> rf_body)
-            accs, inits, inputs = analyze_rf_args(rf_ex.args[1])
-            rf_body = rf_ex.args[2]
-            pre_updates = []
-            updaters = [rf_body]
-        else
-            if all(is_rebinding_update, opspecs)
-                # handle: @reduce(acc₁ op₁= x₁, ..., accₙ opₙ= xₙ)
-                ops = [Symbol(String(x.head)[1:end-1]) for x in opspecs]
-                accs = [x.args[1] for x in opspecs]
-                inits = nothing
-                (inputs, pre_updates) =
-                    extract_pre_updates([x.args[2] for x in opspecs])
-            elseif all(x -> isexpr(x, :(=), 2) && isexpr(x.args[2], :call, 3), opspecs)
-                # handle: @reduce(acc₁ = op₁(init₁, x₁), ..., accₙ = opₙ(initₙ, xₙ))
-                ops = [x.args[2].args[1] for x in opspecs]
-                accs = [x.args[1] for x in opspecs]
-                inits = [x.args[2].args[2] for x in opspecs]
-                (inputs, pre_updates) =
-                    extract_pre_updates([x.args[2].args[3] for x in opspecs])
-            else
-                error(join(vcat(["unsupported:"], opspecs), "\n"))
-            end
-            inputs, pre_updates2 = uniquify_inputs(inputs)
-            append!(pre_updates, pre_updates2)
-            updaters = [:($a = $op($a, $x)) for (op, a, x) in zip(ops, accs, inputs)]
-        end
+        (inits, accs, inputs, pre_updates, initializers, updaters) =
+            process_reduce_op_spec(spec)
         push!(is_init, false)
         push!(all_rf_inits, inits)
         push!(all_rf_accs, accs)
@@ -503,21 +712,23 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
         # TODO: input symbols just have to be unique within a
         # `@reduce` block.  This restriction (unique across all
         # `@reduce`) can be removed.
-        use_oninit = false
-        if inits === nothing
-            initializers = [:($a = $x) for (a, x) in zip(accs, inputs)]
-            updaters0 = []
-            push!(init_exprs, _FLoopInit())
-        elseif any(!isempty(intersect(spec.visible, unbound_rhs(ex))) for ex in inits)
-            initializers = [:($a = $x) for (a, x) in zip(accs, inits)]
-            updaters0 = updaters
-            push!(init_exprs, _FLoopInit())
-        else
+        use_oninit =
+            inits !== nothing && let visible = spec.visible
+                if !isempty(pre_updates)
+                    # `pre_updates` defines symbols that may be defined in `inits`
+                    visible = mapfoldl(push!, pre_updates; init = copy(visible)) do ex
+                        @assert isexpr(ex, :(=), 2)
+                        ex.args[1]::Symbol
+                    end
+                end
+                !any(!isempty(intersect(visible, unbound_rhs(ex))) for ex in inits)
+            end
+        if use_oninit
             # Hoisting out `init` clauses, since it is not accessing variables
             # used inside the loop body.
-            use_oninit = true
-            initializers = updaters0 = nothing
             push!(init_exprs, :(tuple($(inits...))))
+        else
+            push!(init_exprs, _FLoopInit())
         end
         function rf_body_with_init(pre_updates = [])
             if use_oninit
@@ -531,8 +742,9 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             quote
                 $(pre_updates...)
                 if $grouped_accs isa $_FLoopInit
+                    # TODO: Check if it is OK to just do `$grouped_accs = $grouped_inputs`
+                    # when inside `combine_body`
                     $(initializers...)
-                    $(updaters0...)
                 else
                     ($(accs...),) = $grouped_accs
                     $(updaters...)
@@ -561,7 +773,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 
     body2, info = transform_loop_body(body1, accs_symbols)
 
-    @gensym oninit_function reducing_function combine_function result
+    @gensym oninit_function reducing_function combine_function result context_function
     if ctx.module_ === Main
         # Ref: https://github.com/JuliaLang/julia/issues/39895
         oninit_function = Symbol(:__, oninit_function)
@@ -570,13 +782,13 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
 
     unpackers = map(
-        enumerate(zip(is_init, all_rf_accs, all_rf_inits)),
-    ) do (i, (nounpack, accs, inits))
+        enumerate(zip(is_init, all_rf_accs, all_rf_inits, init_exprs)),
+    ) do (i, (nounpack, accs, inits, ex))
         @gensym grouped_accs
         if nounpack
             # This accumulator is from `@init`.
             nothing
-        elseif inits === nothing
+        elseif inits === nothing || ex === _FLoopInit()
             quote
                 $grouped_accs = $result[$i]
                 # Assign to accumulator only if it is updated at least once:
@@ -620,7 +832,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             $(combine_bodies...)
             return ($(accs_symbols...),)
         end
-        $_verify_no_boxes($reducing_function)
+        $context_function() = (; ctx = $ctx, id = $(QuoteNode(gensym(:floop_id))))
+        $_verify_no_boxes($reducing_function, $context_function)
         $result = $_fold(
             $wheninit(
                 $oninit_function,
