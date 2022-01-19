@@ -489,4 +489,17 @@ function test_heterogeneous_dot_update_syntax()
     @test occursin("e.g., don't mix `a .+= x` and `a .= 0 .+ x`", sprint(showerror, err))
 end
 
+function test_non_dot_call()
+    err = try
+        @eval @macroexpand @floop for x in xs
+            @reduce a .= 0 + x
+        end
+        nothing
+    catch err
+        err
+    end
+    @test err isa Exception
+    @test occursin("requires a binary dot call", sprint(showerror, err))
+end
+
 end  # module

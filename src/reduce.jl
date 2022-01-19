@@ -482,10 +482,11 @@ function process_reduce_op_spec(
         if !all(x -> is_dotcall(x.args[2], 2), opspecs)
             msg = sprint() do io
                 print(io, "`@reduce lhs .= rhs` syntax requires a binary dot call")
-                println(io, " (e.g., `a .+ b` or `f.(a, b)`) on the rhs; got:")
+                print(io, " (e.g., `a .+ b` or `f.(a, b)`) on the rhs; got:")
                 for (i, x) in pairs(opspecs)
                     if !is_dotcall(x.args[2], 2)
-                        println(io, i, "-th op spec: ", opspecs[i])
+                        println(io)
+                        print(io, i, "-th op spec: ", opspecs[i])
                     end
                 end
             end
