@@ -5,9 +5,13 @@
 FLoops.jl may complain about `HasBoxedVariableError`. For a quick prototyping,
 calling [`FLoops.assistant(false)`](@ref FLoops.assistant) to disable the
 error/warning may be useful.  However, it is also easy to avoid this problem if
-you understand a few patterns.
+you understand a few patterns as explained below:
 
-### Leaked variables
+* ["Leaked variables" ⇒ use `local`](@ref leaked-variables)
+* ["Uncertain values" ⇒ use `let`](@ref uncertain-values)
+* ["Not really a data race" ⇒ use `Ref`](@ref not-really-a-data-race)
+
+### ["Leaked variables" ⇒ use `local`](@id leaked-variables)
 
 `HasBoxedVariableError` can occur when "leaked" variables are causing data
 races.  Consider the following example:
@@ -82,7 +86,7 @@ function leaked_variable_example_fix3(xs)
 end
 ```
 
-### Uncertain values
+### ["Uncertain values" ⇒ use `let`](@id uncertain-values)
 
 !!! note
     This is a known limitation as of Julia 1.8-DEV. This documentation may not
@@ -90,7 +94,8 @@ end
     [performance of captured variables in closures · Issue #15276 · JuliaLang/julia](https://github.com/JuliaLang/julia/issues/15276)
 
 `HasBoxedVariableError` can also occur when Julia is uncertain about the value
-of some variables in the scope surrounding `@floop`.  For example:
+of some variables in the scope surrounding `@floop` (i.e., there are multiple
+binding locations).  For example:
 
 ```julia
 function uncertain_value_example(xs; flag = false)
@@ -128,7 +133,7 @@ function uncertain_value_example_fix(xs; flag = false)
 end
 ```
 
-### Not really a data race
+### ["Not really a data race" ⇒ use `Ref`](@id not-really-a-data-race)
 
 It is conceptually sound to assign to the variables in an outer scope of
 `@floop` if it is ensured that the race does not occur.  For example, in the
