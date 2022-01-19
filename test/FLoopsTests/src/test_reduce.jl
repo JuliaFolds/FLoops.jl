@@ -124,12 +124,34 @@ function mixed_broadcasts(xs)
     end
 end
 
+function mixed_broadcasts2(xs)
+    @floop for x in xs
+        @reduce(
+            a .= 0 .+ x,          # symbol
+            b .= 0 .+ isodd.(x),  # dot call
+            c .= 0 .+ .√(x),      # unary dot op
+            d .= 0 .+ (x .- 1),   # binary dot op
+            e .= 0 .+ prod(x),    # normal call
+            f .= 0 .+ (x ⊕ 1),    # normal binary op
+            g .= 0 .+ -x,         # normal unary op
+        )
+    end
+    try
+        return (a = a, b = b, c = c, d = d, e = e, f = f, g = g)
+    catch err
+        return err
+    end
+end
+
 function test_mixed_broadcasts()
     @test mixed_broadcasts([[4], [9]]) ==
+          mixed_broadcasts2([[4], [9]]) ==
           (a = [13], b = [1], c = [5], d = [11], e = 13, f = [15], g = [-13])
     @test mixed_broadcasts([[4]]) ==
+          mixed_broadcasts2([[4]]) ==
           (a = [4], b = [0], c = [2], d = [3], e = 4, f = [5], g = [-4])
     @test mixed_broadcasts(1:0) == UndefVarError(:a)
+    @test mixed_broadcasts2(1:0) == (a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0)
 end
 
 function sum_onehot(indices, ex = nothing)
@@ -452,6 +474,19 @@ function test_duplicated_accumulators()
     end
     @test err isa Exception
     @test occursin("`y` used 2 times", sprint(showerror, err))
+end
+
+function test_heterogeneous_dot_update_syntax()
+    err = try
+        @eval @macroexpand @floop for x in xs
+            @reduce(a .+= x, b .= 0 .+ x)
+        end
+        nothing
+    catch err
+        err
+    end
+    @test err isa Exception
+    @test occursin("e.g., don't mix `a .+= x` and `a .= 0 .+ x`", sprint(showerror, err))
 end
 
 end  # module

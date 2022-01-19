@@ -478,8 +478,19 @@ function process_reduce_op_spec(
         (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
         initializers = [:($a = $InitialValue($op)) for (a, op) in zip(accs, ops)]
         true
-    elseif all(x -> isexpr(x, :(.=), 2), opspecs) &&
-           all(x -> is_dotcall(x.args[2], 2), opspecs)
+    elseif all(x -> isexpr(x, :(.=), 2), opspecs)
+        if !all(x -> is_dotcall(x.args[2], 2), opspecs)
+            msg = sprint() do io
+                print(io, "`@reduce lhs .= rhs` syntax requires a binary dot call")
+                println(io, " (e.g., `a .+ b` or `f.(a, b)`) on the rhs; got:")
+                for (i, x) in pairs(opspecs)
+                    if !is_dotcall(x.args[2], 2)
+                        println(io, i, "-th op spec: ", opspecs[i])
+                    end
+                end
+            end
+            error(msg)
+        end
         # handle: @reduce(acc₁ .= op₁.(init₁, x₁), ..., accₙ .= opₙ.(initₙ, xₙ))
         accs, ops, inits, inputs =
             opspecs |>
@@ -509,6 +520,12 @@ function process_reduce_op_spec(
         initializers =
             [:($a = $(dematerialize_dotcall(x))) for (a, x) in zip(accs, inits)]
         true
+    elseif any(is_dot_update, opspecs) || any(x -> isexpr(x, :(.=), 2), opspecs)
+        error(
+            "`@reduce` currently requires all syntaxes to be similar",
+            " (e.g., don't mix `a .+= x` and `a .= 0 .+ x`); got:\n",
+            join(opspecs, "\n"),
+        )
     else
         false
     end && begin
