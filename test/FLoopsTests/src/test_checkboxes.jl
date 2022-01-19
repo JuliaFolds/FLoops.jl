@@ -33,12 +33,46 @@ end
 
 dummy_context() = (ctx = MacroContext(LineNumberNode(0), @__MODULE__), id = :dummy)
 
-function test_verify_no_boxes()
+function test_assistant()
     @test (verify_no_boxes(_make_closure_without_a_box(), dummy_context); true)
+
     f = _make_closure_with_a_box()
     with_assistant(:error) do
         @test_throws HasBoxedVariableError(f) verify_no_boxes(f, dummy_context)
     end
+    with_assistant(true) do
+        @test_logs (:warn, r"Correctness .*") verify_no_boxes(f, dummy_context)
+    end
+    with_assistant(:warn) do
+        @test_logs (:warn, r"Correctness .*") verify_no_boxes(f, dummy_context)
+    end
+    with_assistant(:warn_always) do
+        @test_logs (:warn, r"Correctness .*") verify_no_boxes(f, dummy_context)
+    end
+    with_assistant(:ignore) do
+        @test_logs verify_no_boxes(f, dummy_context)
+    end
+    with_assistant(false) do
+        @test_logs verify_no_boxes(f, dummy_context)
+    end
+
+    result = with_assistant(:error) do
+        FLoops.assistant(:warn)
+    end
+    msg = sprint(show, "text/plain", result)
+    @test occursin("FLoops.assistant", msg)
+    @test occursin("old mode: error", msg)
+    @test occursin("new mode: warn", msg)
+
+    err = try
+        FLoops.assistant(:INVALID_MODE)
+        nothing
+    catch e
+        e
+    end
+    @test err isa Exception
+    msg = sprint(showerror, err)
+    @test occursin("invalid mode:", msg)
 end
 
 function test_HasBoxedVariableError()
