@@ -38,6 +38,8 @@ is now executed in parallel by default.
 supports complex reduction with additional syntax `@reduce`:
 
 ```julia
+julia> using FLoops  # exports @floop macro
+
 julia> @floop for (x, y) in zip(1:3, 1:2:6)
            a = x + y
            b = x - y
@@ -56,8 +58,6 @@ For more examples, see
 Simply wrap a `for` loop and its initialization part with `@floop begin ... end`:
 
 ```julia
-julia> using FLoops  # exports @floop macro
-
 julia> @floop begin
            s = 0
            for x in 1:3
