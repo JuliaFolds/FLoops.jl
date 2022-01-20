@@ -32,7 +32,7 @@ is now executed in parallel by default.
 
 ## Usage
 
-# Parallel loop
+### Parallel loop
 
 `@floop` is a superset of `Threads.@threads` (see below) and in particular
 supports complex reduction with additional syntax `@reduce`:
@@ -53,7 +53,7 @@ julia> @floop for (x, y) in zip(1:3, 1:2:6)
 For more examples, see
 [parallel loops tutorial](https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/).
 
-# Sequential (single-thread) loop
+### Sequential (single-thread) loop
 
 Simply wrap a `for` loop and its initialization part with `@floop begin ... end`:
 
