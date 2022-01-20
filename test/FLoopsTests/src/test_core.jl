@@ -34,8 +34,10 @@ end
 function test_no_states()
     xs = 1:10
     ys = similar(xs)
-    @floop for (i, x) in enumerate(xs)
-        ys[i] = 2x
+    @floop begin
+        for (i, x) in enumerate(xs)
+            ys[i] = 2x
+        end
     end
     @test ys == 2 .* xs
 end
@@ -110,9 +112,11 @@ end
 function test_continue()
     xs = 1:3
     ys = []
-    @floop for x in xs
-        x == 1 && continue
-        push!(ys, x)
+    @floop begin
+        for x in xs
+            x == 1 && continue
+            push!(ys, x)
+        end
     end
     @test ys == [2, 3]
 end
@@ -120,9 +124,11 @@ end
 function test_break()
     xs = 1:3
     ys = []
-    @floop for x in xs
-        push!(ys, x)
-        x == 2 && break
+    @floop begin
+        for x in xs
+            push!(ys, x)
+            x == 2 && break
+        end
     end
     @test ys == [1, 2]
 end
@@ -130,10 +136,12 @@ end
 function test_return()
     function demo()
         ys = []
-        @floop for x in 1:3
-            push!(ys, x)
-            if x == 2
-                return ys
+        @floop begin
+            for x in 1:3
+                push!(ys, x)
+                if x == 2
+                    return ys
+                end
             end
         end
     end
@@ -144,8 +152,10 @@ function test_product()
     xs = 1:10
     ys = 2:3:15
     actual = []
-    @floop for x in xs, y in ys
-        push!(actual, (y, x))
+    @floop begin
+        for x in xs, y in ys
+            push!(actual, (y, x))
+        end
     end
     desired = []
     for x in xs, y in ys
@@ -157,8 +167,10 @@ end
 function test_triangular_2()
     xs = 1:10
     actual = []
-    @floop for x in xs, y in x:2:10
-        push!(actual, (y, x))
+    @floop begin
+        for x in xs, y in x:2:10
+            push!(actual, (y, x))
+        end
     end
     desired = []
     for x in xs, y in x:2:10
@@ -170,8 +182,10 @@ end
 function test_triangular_3()
     xs = 1:10
     actual = []
-    @floop for x in xs, y in x:2:10, z in x:y:20
-        push!(actual, (y, x, z))
+    @floop begin
+        for x in xs, y in x:2:10, z in x:y:20
+            push!(actual, (y, x, z))
+        end
     end
     desired = []
     for x in xs, y in x:2:10, z in x:y:20

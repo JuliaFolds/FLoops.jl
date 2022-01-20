@@ -40,7 +40,7 @@ macro floop(ex)
     ctx = MacroContext(__source__, __module__)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    is_parallel(exx) && return esc(floop_parallel(ctx, exx, simd))
+    isexpr(exx, :for) && return esc(floop_parallel(ctx, exx, simd))
     esc(floop(exx, simd))
 end
 

@@ -241,14 +241,6 @@ end
 on_reduce_op_spec_reconstructing(on_spec, ex; otherwise = identity, on_init = otherwise) =
     on_reduce_op_spec(on_spec, ex; on_expr = Expr, otherwise = otherwise, on_init = on_init)
 
-is_parallel(ex) = on_reduce_op_spec(
-    _ -> true,
-    ex;
-    on_init = _ -> true,
-    on_expr = (_, args...) -> any(args),
-    otherwise = _ -> false,
-)
-
 function floop_parallel(ctx::MacroContext, ex::Expr, simd, executor = nothing)
     if !isexpr(ex, :for, 2)
         error("expected a `for` loop; got:\n", ex)

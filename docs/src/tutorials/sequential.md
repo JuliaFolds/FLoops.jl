@@ -37,17 +37,3 @@ julia> @floop begin
 julia> p
 20
 ```
-
-The `begin ... end` block can be omitted if the `for` loop does not
-require local variables to carry the state:
-
-```jldoctest
-julia> using FLoops
-
-julia> @floop for x in 1:3
-           @show x
-       end
-x = 1
-x = 2
-x = 3
-```
