@@ -9,7 +9,7 @@ function test(; skip = true)
             @info "Skipping doctests on PkgEval."
             @test_skip nothing
             return
-        elseif VERSION >= v"1.6-"
+        elseif VERSION < v"1.6"
             @info "Skipping doctests on Julia $VERSION."
             @test_skip nothing
             return
