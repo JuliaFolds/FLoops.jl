@@ -80,18 +80,18 @@ function test_HasBoxedVariableError()
         err = HasBoxedVariableError(_make_closure_with_a_box())
         @debug "Example `HasBoxedVariableError`" err
         msg = sprint(showerror, err)
-        @test occursin("Consider adding declarations such as `local a`", msg)
         @test occursin("1 boxed variable:", msg)
         @test occursin(r"\b a \b"x, msg)
+        @test occursin("faq/#avoid-boxing", msg)
     end
     @testset "two boxes" begin
         err = HasBoxedVariableError(_make_closure_with_two_boxes())
         @debug "Example `HasBoxedVariableError`" err
         msg = sprint(showerror, err)
-        @test occursin(r"Consider adding declarations such as `local (a|b)`", msg)
         @test occursin("2 boxed variables:", msg)
         @test occursin(r"\b a \b"x, msg)
         @test occursin(r"\b b \b"x, msg)
+        @test occursin("faq/#avoid-boxing", msg)
     end
 end
 

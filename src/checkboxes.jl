@@ -134,22 +134,12 @@ function Base.showerror(io::IO, err::HasBoxedVariableError)
     end
 
     println(io)
-    printstyled(io, "HINT:", bold = true, color = :magenta)
-    var = get(varnames, 1, :x)
-    print(io, " Consider adding declarations such as `")
-    printstyled(io, "local ", var; color = :cyan)
-    print(io, "` at the narrowest possible scope required.")
-
-    println(io)
-    printstyled(io, "NOTE:", bold = true, color = :light_black)
+    print(io, "See: ")
     printstyled(
         io,
-        " This is very likely required for avoiding data races.",
-        " If boxing the variables is intended, use `Ref{Any}(...)`",
-        " instead.";
-        color = :light_black,
+        "https://juliafolds.github.io/FLoops.jl/dev/explanation/faq/#avoid-boxing";
+        color = :blue,
     )
-    # "To ignore this error, pass `allow_boxing = Val(true)` to the executor."
 
     println(io)
     printstyled(io, "NOTE:", bold = true, color = :light_black)
