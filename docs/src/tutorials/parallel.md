@@ -27,7 +27,7 @@ julia> function floop_map!(f, ys, xs, ex = ThreadedEx())
        end;
 
 julia> floop_map!(x -> x + 1, zeros(3), 1:3)
-3-element Array{Float64,1}:
+3-element Vector{Float64}:
  2.0
  3.0
  4.0

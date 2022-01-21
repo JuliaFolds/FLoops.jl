@@ -9,12 +9,14 @@ end
 ## `continue`
 
 ```jldoctest
-julia> @floop for x in 1:3
-           if x == 1
-               println("continue")
-               continue
+julia> @floop begin
+           for x in 1:3
+               if x == 1
+                   println("continue")
+                   continue
+               end
+               @show x
            end
-           @show x
        end
 continue
 x = 2
@@ -24,11 +26,13 @@ x = 3
 ## `break`
 
 ```jldoctest
-julia> @floop for x in 1:3
-           @show x
-           if x == 2
-               println("break")
-               break
+julia> @floop begin
+           for x in 1:3
+               @show x
+               if x == 2
+                   println("break")
+                   break
+               end
            end
        end
 x = 1
@@ -40,10 +44,11 @@ break
 
 ```jldoctest
 julia> function demo()
-           @floop for x in 1:3
-               @show x
-               if x == 2
-                   return "return"
+           @floop begin for x in 1:3
+                   @show x
+                   if x == 2
+                       return "return"
+                   end
                end
            end
        end
@@ -57,13 +62,15 @@ x = 2
 
 ```jldoctest
 julia> begin
-       @floop for x in 1:3
-           x == 1 && @goto L1
-           @show x
-           if x == 2
-               @goto L2
+       @floop begin
+           for x in 1:3
+               x == 1 && @goto L1
+               @show x
+               if x == 2
+                   @goto L2
+               end
+               @label L1
            end
-           @label L1
        end
        println("This is not going to be printed.")
        @label L2

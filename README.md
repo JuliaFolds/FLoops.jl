@@ -14,15 +14,50 @@ various thread-based executors that are optimized for different kinds of
 loops. [FoldsCUDA.jl](https://github.com/JuliaFolds/FoldsCUDA.jl) provides an
 executor for GPU. FLoops.jl also provide a simple distributed executor.
 
+## Update notes
+
+FLoops.jl 0.2 defaults to a parallel loop; i.e., it uses a parallel executor
+(e.g., `ThreadedEx`) when the executor is not specified and the explicit
+sequential form `@floop begin ...  end` is not used.
+
+That is to say, `@floop` without `@reduce` such as
+
+```JULIA
+@floop for i in eachindex(ys, xs)
+    ys[i] = f(xs[i])
+end
+```
+
+is now executed in parallel by default.
+
 ## Usage
 
-# Sequential (single-thread) loops
+### Parallel loop
 
-Simply wrap a `for` loop and its initialization part by `@floop`:
+`@floop` is a superset of `Threads.@threads` (see below) and in particular
+supports complex reduction with additional syntax `@reduce`:
 
 ```julia
 julia> using FLoops  # exports @floop macro
 
+julia> @floop for (x, y) in zip(1:3, 1:2:6)
+           a = x + y
+           b = x - y
+           @reduce s += a
+           @reduce t += b
+       end
+       (s, t)
+(15, -3)
+```
+
+For more examples, see
+[parallel loops tutorial](https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/).
+
+### Sequential (single-thread) loop
+
+Simply wrap a `for` loop and its initialization part with `@floop begin ... end`:
+
+```julia
 julia> @floop begin
            s = 0
            for x in 1:3
@@ -35,24 +70,6 @@ julia> @floop begin
 
 For more examples, see
 [sequential loops tutorial](https://juliafolds.github.io/FLoops.jl/dev/tutorials/sequential/).
-
-# Parallel loop
-
-`@floop` is a superset of `Threads.@threads` (see below) and in particular
-supports complex reduction with additional syntax `@reduce`:
-
-```julia
-julia> @floop for (x, y) in zip(1:3, 1:2:6)
-           a = x + y
-           b = x - y
-           @reduce(s += a, t += b)
-       end
-       (s, t)
-(15, -3)
-```
-
-For more examples, see
-[parallel loops tutorial](https://juliafolds.github.io/FLoops.jl/dev/tutorials/parallel/).
 
 ## Advantages over `Threads.@threads`
 

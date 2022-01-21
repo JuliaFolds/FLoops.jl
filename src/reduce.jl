@@ -5,6 +5,7 @@
     @reduce(acc₁ ⊗₁= x₁, ..., accₙ ⊗ₙ= xₙ)
     @reduce(acc₁ .⊗₁= x₁, ..., accₙ .⊗ₙ= xₙ)
     @reduce(acc₁ = ⊗₁(init₁, x₁), ..., accₙ = ⊗ₙ(initₙ, xₙ))
+    @reduce(acc₁ .= (⊗₁).(init₁, x₁), ..., accₙ = (⊗ₙ).(initₙ, xₙ))
 
 Declare how accumulators are updated in the sequential basecase and
 how the resulting accumulators from two basecases are combined.
@@ -240,14 +241,6 @@ end
 on_reduce_op_spec_reconstructing(on_spec, ex; otherwise = identity, on_init = otherwise) =
     on_reduce_op_spec(on_spec, ex; on_expr = Expr, otherwise = otherwise, on_init = on_init)
 
-is_parallel(ex) = on_reduce_op_spec(
-    _ -> true,
-    ex;
-    on_init = _ -> true,
-    on_expr = (_, args...) -> any(args),
-    otherwise = _ -> false,
-)
-
 function floop_parallel(ctx::MacroContext, ex::Expr, simd, executor = nothing)
     if !isexpr(ex, :for, 2)
         error("expected a `for` loop; got:\n", ex)
@@ -339,6 +332,14 @@ function extract_pre_updates(raw_inputs)
     inputs, pre_updates2 = uniquify_inputs(inputs)
     append!(pre_updates, pre_updates2)
     return (inputs, pre_updates)
+end
+
+function dematerialize_dotcall(ex)
+    if is_dotcall(ex)
+        :($_lazydotcall.($ex))
+    else
+        ex
+    end
 end
 
 function _lazydotcall end
@@ -467,16 +468,61 @@ function process_reduce_op_spec(
         accs = [x.args[1] for x in opspecs]
         inits = nothing
         (inputs, pre_updates) = extract_pre_updates([x.args[2] for x in opspecs])
-        pre_updates = map(pre_updates) do x
-            if is_dotcall(x)
-                # i.e., `x` is `f.(args...)` of `acc .⊗= f.(args...)``
-                :($_lazydotcall.($x))
-            else
-                x
-            end
-        end
         initializers = [:($a = $InitialValue($op)) for (a, op) in zip(accs, ops)]
+        true
+    elseif all(x -> isexpr(x, :(.=), 2), opspecs)
+        if !all(x -> is_dotcall(x.args[2], 2), opspecs)
+            msg = sprint() do io
+                print(io, "`@reduce lhs .= rhs` syntax requires a binary dot call")
+                print(io, " (e.g., `a .+ b` or `f.(a, b)`) on the rhs; got:")
+                for (i, x) in pairs(opspecs)
+                    if !is_dotcall(x.args[2], 2)
+                        println(io)
+                        print(io, i, "-th op spec: ", opspecs[i])
+                    end
+                end
+            end
+            error(msg)
+        end
+        # handle: @reduce(acc₁ .= op₁.(init₁, x₁), ..., accₙ .= opₙ.(initₙ, xₙ))
+        accs, ops, inits, inputs =
+            opspecs |>
+            Map() do ex
+                acc, rhs = ex.args
+                if isexpr(rhs, :call, 3)
+                    dotop, init, input = rhs.args
+                    str = String(dotop)
+                    @assert startswith(str, ".")
+                    op = Symbol(str[2:end])
+                else
+                    @assert rhs.head == :. &&
+                            length(rhs.args) == 2 &&
+                            isexpr(rhs.args[2], :tuple, 2)
+                    op = rhs.args[1]
+                    init, input = rhs.args[2].args
+                end
+                (acc, op, init, input)
+            end |>
+            foldxl(ProductRF(push!!, push!!, push!!, push!!))
+        (inputs, pre_updates) = extract_pre_updates(inputs)
 
+        # Although we can't dematerialize `inits` since it could be hoisted out,
+        # we can dematerialize `inits` in the initializers since we know that
+        # they are followed by materializing `broadcast_inplace!!` call in the
+        # updaters.
+        initializers =
+            [:($a = $(dematerialize_dotcall(x))) for (a, x) in zip(accs, inits)]
+        true
+    elseif any(is_dot_update, opspecs) || any(x -> isexpr(x, :(.=), 2), opspecs)
+        error(
+            "`@reduce` currently requires all syntaxes to be similar",
+            " (e.g., don't mix `a .+= x` and `a .= 0 .+ x`); got:\n",
+            join(opspecs, "\n"),
+        )
+    else
+        false
+    end && begin
+        pre_updates = map(dematerialize_dotcall, pre_updates)
         updaters = map(ops, accs, inputs) do op, a, x
             broadcast_inplace!! = GlobalRef(@__MODULE__, :broadcast_inplace!!)
             :($a = $broadcast_inplace!!($op, $a, $x))
@@ -719,7 +765,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
 
     body2, info = transform_loop_body(body1, accs_symbols)
 
-    @gensym oninit_function reducing_function combine_function result
+    @gensym oninit_function reducing_function combine_function result context_function
     if ctx.module_ === Main
         # Ref: https://github.com/JuliaLang/julia/issues/39895
         oninit_function = Symbol(:__, oninit_function)
@@ -778,7 +824,8 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             $(combine_bodies...)
             return ($(accs_symbols...),)
         end
-        $_verify_no_boxes($reducing_function)
+        $context_function() = (; ctx = $ctx, id = $(QuoteNode(gensym(:floop_id))))
+        $_verify_no_boxes($reducing_function, $context_function)
         $result = $_fold(
             $wheninit(
                 $oninit_function,
