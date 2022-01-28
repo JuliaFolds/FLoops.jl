@@ -20,7 +20,7 @@ struct ScratchSpace{F,T} <: AbstractScratchSpace
 end
 # Note: Subtyping `AbstractScratchSpace` so that FoldsCUDA can remove
 # `ScratchSpace` (that can contain mutables) before sharing the accumulator
-# between threads.
+# between threads without importing FLoops.jl.
 # Note: Using `::Union{T,Cleared}` so that serialize-deserialize does not
 # change the type (after throwing away the `.value`). It seems that the
 # compiler can optimize away the type-instability.
