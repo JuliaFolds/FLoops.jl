@@ -20,7 +20,7 @@ module FLoops
     doc
 end FLoops
 
-export @floop, @init, @reduce, DistributedEx, SequentialEx, ThreadedEx
+export @floop, @init, @combine, @reduce, DistributedEx, SequentialEx, ThreadedEx
 
 using BangBang.Extras: broadcast_inplace!!
 using BangBang: materialize!!, push!!
