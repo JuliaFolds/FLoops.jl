@@ -99,15 +99,13 @@ version = "0.24.9"
 deps = ["BangBang", "Compat", "FLoopsBase", "InitialValues", "JuliaVariables", "MLStyle", "Serialization", "Setfield", "Transducers"]
 path = "../../.."
 uuid = "cc61a311-1640-44b5-9fba-1b764f453329"
-version = "0.1.12-DEV"
+version = "0.2.1-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
-git-tree-sha1 = "342e73a631d6829762dd935023446f3b3344fe49"
-repo-rev = "scratch"
-repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
+git-tree-sha1 = "656f7a6859be8673bf1f35da5670246b923964f7"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
-version = "0.1.1-DEV"
+version = "0.1.1"
 
 [[FLoopsTests]]
 deps = ["BangBang", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Random", "Serialization", "Test", "Transducers"]
