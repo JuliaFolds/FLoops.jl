@@ -83,9 +83,11 @@ version = "0.1.12-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
-git-tree-sha1 = "cf3d8b2527be12d204d06aba922b30339a9653dd"
+git-tree-sha1 = "342e73a631d6829762dd935023446f3b3344fe49"
+repo-rev = "scratch"
+repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
-version = "0.1.0"
+version = "0.1.1-DEV"
 
 [[Future]]
 deps = ["Random"]

@@ -103,11 +103,11 @@ version = "0.1.12-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
-git-tree-sha1 = "fa6d62793b30d33622d1f6f28cd0d9e985a2ce79"
-repo-rev = "master"
+git-tree-sha1 = "342e73a631d6829762dd935023446f3b3344fe49"
+repo-rev = "scratch"
 repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
-version = "0.1.0"
+version = "0.1.1-DEV"
 
 [[FLoopsTests]]
 deps = ["BangBang", "Documenter", "FLoops", "FLoopsBase", "Future", "LiterateTest", "MicroCollections", "PerformanceTestTools", "Random", "Serialization", "Test", "Transducers"]
