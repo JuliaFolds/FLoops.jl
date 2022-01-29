@@ -97,11 +97,9 @@ version = "0.2.1-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
-git-tree-sha1 = "5ce7d7b0851a9c8a7efc3e40fc276ebaa0c0b41c"
-repo-rev = "master"
-repo-url = "https://github.com/JuliaFolds/FLoopsBase.jl.git"
+git-tree-sha1 = "656f7a6859be8673bf1f35da5670246b923964f7"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
-version = "0.1.1-DEV"
+version = "0.1.1"
 
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]

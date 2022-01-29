@@ -100,9 +100,9 @@ version = "0.2.1-DEV"
 
 [[FLoopsBase]]
 deps = ["ContextVariablesX"]
-git-tree-sha1 = "cf3d8b2527be12d204d06aba922b30339a9653dd"
+git-tree-sha1 = "656f7a6859be8673bf1f35da5670246b923964f7"
 uuid = "b9860ae5-e623-471e-878b-f6a53c775ea6"
-version = "0.1.0"
+version = "0.1.1"
 
 [[Future]]
 deps = ["Random"]
