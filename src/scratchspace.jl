@@ -11,13 +11,16 @@ An object for appropriately caching the `value` returned from `f`. The
 Construct this by `x = ScratchSpace(f, f())`. At the use site, update the
 variable with `x = allocated(x)` and then fetch the value by `x.value`.
 """
-struct ScratchSpace{F,T}
+struct ScratchSpace{F,T} <: AbstractScratchSpace
     f::F
     value::Union{T,Cleared}
     ScratchSpace(f::F, value::T) where {F,T} = new{F,T}(f, value)
     # ScratchSpace{F,T}(f::F, value::T) where {F,T} = new{F,T}(f, value)
     ScratchSpace{F,T}(f::F) where {F,T} = new{F,T}(f, Cleared())  # deallocate
 end
+# Note: Subtyping `AbstractScratchSpace` so that FoldsCUDA can remove
+# `ScratchSpace` (that can contain mutables) before sharing the accumulator
+# between threads without importing FLoops.jl.
 # Note: Using `::Union{T,Cleared}` so that serialize-deserialize does not
 # change the type (after throwing away the `.value`). It seems that the
 # compiler can optimize away the type-instability.
