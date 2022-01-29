@@ -25,7 +25,7 @@ export @floop, @init, @reduce, DistributedEx, SequentialEx, ThreadedEx
 using BangBang.Extras: broadcast_inplace!!
 using BangBang: materialize!!, push!!
 using Base.Meta: isexpr
-using FLoopsBase: EXTRA_STATE_VARIABLES
+using FLoopsBase: AbstractScratchSpace, EXTRA_STATE_VARIABLES
 using InitialValues: InitialValue
 using JuliaVariables: JuliaVariables, Var, simplify_ex
 using MLStyle: @match
