@@ -106,7 +106,7 @@ former has the room for placing `@combine` after the `for` loop.  The syntaxes
     @combine acc ⊗= _
     @combine acc = _ ⊗ _
 
-specifies that the reduction results are combined using the binary operator `⊗`
+specify that the reduction results are combined using the binary operator `⊗`
 (e.g., `⊗ = (a, b) -> a .+ b` in the above code).  Suppose that we have `acc₁`
 as the result of the reduction named `acc` for the first basecase and `acc₂` for
 the second basecase.  These results are combined using
@@ -184,6 +184,27 @@ julia> @floop for x in 1:5
            end
        end
        (odds, evens)
+([1, 3, 5], [2, 4])
+```
+
+```jldoctest
+julia> let
+           odds = Int[]   # \___  The expression in the first argument is
+           evens = Int[]  # /     used for the initialization
+           for x in 1:5
+               ys = [x]
+               if isodd(x)
+                   odds = append!(odds, ys)
+                   #             -----
+                   #             LHS `odds` inserted to the first argument
+               else
+                   evens = append!(evens, ys)
+                   #             -----
+                   #             LHS `evens` inserted to the first argument
+               end
+           end
+           (odds, evens)
+       end
 ([1, 3, 5], [2, 4])
 ```
 
