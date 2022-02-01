@@ -62,6 +62,7 @@ using Transducers:
     transduce,
     unreduced,
     whencombine,
+    whencompletebasecase,
     wheninit
 
 if isdefined(JuliaVariables, :solve!)
@@ -82,6 +83,7 @@ end
 include("utils.jl")
 include("macro.jl")
 include("reduce.jl")
+include("combine.jl")
 include("scratchspace.jl")
 include("checkboxes.jl")
 

@@ -95,20 +95,34 @@ end
 
 ReduceOpSpec(args::Vector{Any}) = ReduceOpSpec(args, Symbol[])
 
+
 """
-    @combine() do (acc₁ [= init₁]; x₁), ..., (accₙ [= initₙ]; xₙ)
+    @combine left ⊗= _
+    @combine left = _ ⊗ _
+    @combine left = op(_ , _)
+    @combine left .⊗= _
+    @combine left .= _ .⊗ _
+    @combine left .= op.(_, _)
+    @combine() do (left₁; right₁), ..., (leftₙ; rightₙ)
         ...
     end
-    @combine(acc₁ ⊗₁= x₁, ..., accₙ ⊗ₙ= xₙ)
-    @combine(acc₁ .⊗₁= x₁, ..., accₙ .⊗ₙ= xₙ)
-    @combine(acc₁ = ⊗₁(other₁, x₁), ..., accₙ = ⊗ₙ(otherₙ, xₙ))
-    @combine(acc₁ .= (⊗₁).(other₁, x₁), ..., accₙ = (⊗ₙ).(otherₙ, xₙ))
 
 Declare how accumulators from two basecases are combined.  Unlike `@reduce`, the
 reduction for the basecase is not defined by this macro.
 """
-macro combine(args...)
-    :(throw($(CombineOpSpec(collect(Any, args)))))
+macro combine(ex)
+    :(throw($(CombineOpSpec(Any[ex]))))
+end
+
+macro combine(ex1, ex2, exprs...)
+    error("""
+    Unlike `@reduce`, `@combine` only supports single expression.
+    Use:
+        @combine a += _
+        @combine b += _
+    Instead of:
+        @combine(a += _, b += _)
+    """)
 end
 
 struct CombineOpSpec <: OpSpec
@@ -929,16 +943,20 @@ struct _FLoopInit end
     transduce(IdentityTransducer(), rf, DefaultInit, coll, maybe_set_simd(exc, simd)),
 )
 
-function Base.showerror(io::IO, opspecs::ReduceOpSpec)
-    print(io, "`@reduce(")
-    join(io, opspecs.args, ", ")
-    print(io, ")` used outside `@floop`")
+macroname(::ReduceOpSpec) = Symbol("@reduce")
+macroname(::CombineOpSpec) = Symbol("@combine")
+
+function Base.print(io::IO, spec::OpSpec)
+    # TODO: print as `do` block
+    print(io, macroname(spec), "(")
+    join(io, spec.args, ", ")
+    print(io, ")")
 end
 
-function Base.showerror(io::IO, opspecs::CombineOpSpec)
-    print(io, "`@combine(")
-    join(io, opspecs.args, ", ")
-    print(io, ")` used outside `@floop`")
+Base.show(io::IO, ::MIME"text/plain", spec::OpSpec) = print(io, spec)
+
+function Base.showerror(io::IO, spec::OpSpec)
+    print(io, "`", spec, "` used outside `@floop`")
 end
 
 function Base.showerror(io::IO, spec::InitSpec)
