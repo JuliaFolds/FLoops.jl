@@ -81,6 +81,17 @@ julia> @floop begin
            @combine hist .+= _  # combine two histograms
        end
        hist
+10-element Vector{Int64}:
+ 31559
+ 31597
+ 31392
+ 31712
+ 31407
+ 31835
+ 31530
+ 31807
+ 31469
+ 31345
 ```
 
 !!! note
@@ -236,7 +247,7 @@ basecase-local buffers are required (for avoiding data races):
 ```jldoctest
 julia> using FLoops
 
-julia> ys = zeros(5)
+julia> ys = zeros(5);
 
 julia> @floop begin
            @init buffer = zeros(100)
@@ -289,6 +300,17 @@ julia> @floop begin
            @combine hist .+= _
        end
        hist
+10-element SVector{10, Int32} with indices SOneTo(10):
+ 31559
+ 31597
+ 31392
+ 31712
+ 31407
+ 31835
+ 31530
+ 31807
+ 31469
+ 31345
 ```
 
 !!! note
