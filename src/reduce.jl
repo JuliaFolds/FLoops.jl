@@ -961,5 +961,5 @@ end
 
 function Base.showerror(io::IO, spec::InitSpec)
     ex = spec.expr
-    print(io, "`@init", ex, "` used outside `@floop`")
+    print(io, "`@init ", ex, "` used outside `@floop`")
 end
