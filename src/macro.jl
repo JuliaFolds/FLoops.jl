@@ -42,7 +42,7 @@ macro floop(ex)
     exx = macroexpand(__module__, ex)
     isexpr(exx, :for) && return esc(floop_parallel(ctx, exx, simd))
     isexpr(exx, :block) &&
-        any(x -> x isa CombineOpSpec, exx.args) &&
+        any(x -> extract_spec(x) isa Union{CombineOpSpec,InitSpec}, exx.args) &&
         return esc(combine_parallel_loop(ctx, exx, simd))
     esc(floop(exx, simd))
 end
