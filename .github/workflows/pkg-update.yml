@@ -26,7 +26,7 @@ jobs:
       - name: Update */Manifest.toml
         uses: tkf/julia-update-manifests@v1
         with:
-          version: '1.4'
+          version: '1.6'
           projects: test/environments/main benchmark docs
 
       # https://github.com/peter-evans/create-pull-request
