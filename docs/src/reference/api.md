@@ -12,6 +12,12 @@ FLoops.@floop
 FLoops.@reduce
 ```
 
+## `@combine`
+
+```@docs
+FLoops.@combine
+```
+
 ## `@init`
 
 ```@docs
