@@ -187,7 +187,7 @@ end
 copyexpr(expr::Expr) = Expr(expr.head, (copyexpr(a) for a in expr.args)...)
 copyexpr(@nospecialize x) = x
 
-function analyze_loop_local_variables!(spec::Union{OpSpec,InitSpec}, scopes)
+function analyze_loop_local_variables!(spec::Union{ReduceOpSpec,InitSpec}, scopes)
     @assert isempty(spec.visible)
     append!(spec.visible, (var.name for sc in scopes for var in sc.bounds))
     unique!(spec.visible)
@@ -256,18 +256,16 @@ function unpack_kwargs(;
     otherwise = donothing,
     on_expr = otherwise,
     on_init = otherwise,
-    on_combine = otherwise,
     kwargs...,
 )
     @assert isempty(kwargs)
-    return (otherwise, on_expr, on_init, on_combine)
+    return (otherwise, on_expr, on_init)
 end
 
 function on_reduce_op_spec(on_spec, ex; kwargs...)
-    (otherwise, on_expr, on_init, on_combine) = unpack_kwargs(; kwargs...)
+    (otherwise, on_expr, on_init) = unpack_kwargs(; kwargs...)
     @match ex begin
         Expr(:call, throw′, spec::ReduceOpSpec) => on_spec(spec)
-        Expr(:call, throw′, spec::CombineOpSpec) => on_combine(spec)
         Expr(:call, throw′, spec::InitSpec) => on_init(spec)
         Expr(head, args...) => begin
             new_args = map(args) do x
@@ -279,8 +277,8 @@ function on_reduce_op_spec(on_spec, ex; kwargs...)
     end
 end
 
-on_reduce_op_spec_reconstructing(on_spec, ex; kwargs...) =
-    on_reduce_op_spec(on_spec, ex; otherwise = identity, on_expr = Expr, kwargs...)
+on_reduce_op_spec_reconstructing(on_spec, ex; otherwise = identity, on_init = otherwise) =
+    on_reduce_op_spec(on_spec, ex; on_expr = Expr, otherwise = otherwise, on_init = on_init)
 
 function floop_parallel(ctx::MacroContext, ex::Expr, simd, executor = nothing)
     if !isexpr(ex, :for, 2)
@@ -480,7 +478,7 @@ end
 ```
 """
 function process_reduce_op_spec(
-    spec::OpSpec,
+    spec::ReduceOpSpec,
 )::NamedTuple{(:inits, :accs, :inputs, :pre_updates, :initializers, :updaters)}
     opspecs = spec.args::Vector{Any}
 
@@ -703,26 +701,14 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
             $ScratchSpace($init_allocator, ($(accs...),))
         end
 
-        @gensym value_field
-        allocated_value = quote
-            # Just in case the value is deallocated:
-            $grouped_private_states = $allocate($grouped_private_states)
-            # Get the `.value` field but let the compiler know that field is allocated:
-            let $value_field = $grouped_private_states.value
-                if $value_field isa $Cleared
-                    $unreachable_floop()
-                else
-                    $value_field
-                end
-            end
-        end
-
         if isempty(intersect(spec.visible, unbound_rhs(spec.expr)))
             # Hoisting out `@init`, since it is not accessing variables used
             # inside the loop body.
             push!(init_exprs, scratch)
             return quote
-                ($(accs...),) = $allocated_value
+                # Just in case it is demoted to `EmptyScratchSpace`:
+                $grouped_private_states = $allocate($grouped_private_states)
+                ($(accs...),) = $grouped_private_states.value
             end
         else
             push!(init_exprs, _FLoopInit())
@@ -732,54 +718,16 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
                     # Assigning to `grouped_private_states` for reusing it next time.
                     $grouped_private_states = $scratch
                 else
+                    # Just in case it is demoted to `EmptyScratchSpace`:
+                    $grouped_private_states = $allocate($grouped_private_states)
                     # After the initialization, just carry it over to the next iteration:
-                    ($(accs...),) = $allocated_value
+                    ($(accs...),) = $grouped_private_states.value
                 end
             end
         end
     end
 
-    function on_combine(spec::CombineOpSpec)
-        @gensym grouped_accs grouped_inputs
-        push!(accs_symbols, grouped_accs)
-        push!(inputs_symbols, grouped_inputs)
-        (_inits, accs, inputs, pre_updates, _initializers, updaters) =
-            process_reduce_op_spec(spec)
-        # TODO: check `init`
-        # TODO: check `initializers`
-
-        push!(is_init, false)
-        push!(init_exprs, _FLoopInit())
-        push!(all_rf_inits, nothing)
-        push!(all_rf_accs, accs)
-        push!(all_rf_inputs, inputs)
-        verify_unique_symbols(accs, "accumulator")
-        verify_unique_symbols(inputs, "input")
-
-        combine_body = quote
-            if $grouped_inputs isa $_FLoopInit
-            else
-                if $grouped_accs isa $_FLoopInit
-                else
-                    ($(inputs...),) = $grouped_inputs
-                    ($(accs...),) = $grouped_accs
-                    $(updaters...)
-                end
-                $grouped_accs = ($(accs...),)
-            end
-        end
-        push!(combine_bodies, combine_body)
-        return quote
-            $(pre_updates...)
-            $grouped_accs = ($(inputs...),)
-        end
-    end
-
-    body1 = on_reduce_op_spec_reconstructing(
-        body0;
-        on_init = on_init,
-        on_combine = on_combine,
-    ) do spec
+    body1 = on_reduce_op_spec_reconstructing(body0; on_init = on_init) do spec
         spec = spec::ReduceOpSpec
         @gensym grouped_accs grouped_inputs
         push!(accs_symbols, grouped_accs)
