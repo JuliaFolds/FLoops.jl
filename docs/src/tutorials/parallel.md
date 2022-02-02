@@ -490,7 +490,7 @@ or
 
 ```julia
 @floop begin
-    @combine acc = init
+    @init acc = init
     for x in xs
         y = f(x)
         acc = op(acc, y)
