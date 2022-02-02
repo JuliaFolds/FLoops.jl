@@ -1,3 +1,39 @@
+"""
+    @combine left ⊗= _
+    @combine left = _ ⊗ _
+    @combine left = op(_ , _)
+    @combine left .⊗= _
+    @combine left .= _ .⊗ _
+    @combine left .= op.(_, _)
+    @combine() do (left₁; right₁), ..., (leftₙ; rightₙ)
+        ...
+    end
+
+Declare how accumulators from two basecases are combined.  Unlike `@reduce`, the
+reduction for the basecase is not defined by this macro.
+"""
+macro combine(ex)
+    :(throw($(CombineOpSpec(Any[ex]))))
+end
+
+macro combine(ex1, ex2, exprs...)
+    error("""
+    Unlike `@reduce`, `@combine` only supports single expression.
+    Use:
+        @combine a += _
+        @combine b += _
+    Instead of:
+        @combine(a += _, b += _)
+    """)
+end
+
+struct CombineOpSpec <: OpSpec
+    args::Vector{Any}
+    visible::Vector{Symbol}
+end
+
+CombineOpSpec(args::Vector{Any}) = CombineOpSpec(args, Symbol[])
+
 function combine_parallel_loop(ctx::MacroContext, ex::Expr, simd, executor = nothing)
     iterspec, body, ansvar, pre, post = destructure_loop_pre_post(ex)
     @assert ansvar == :_
