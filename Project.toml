@@ -23,7 +23,7 @@ JuliaVariables = "0.2"
 MLStyle = "0.3, 0.4"
 Setfield = "0.3, 0.4, 0.5, 0.6, 0.7, 0.8"
 Transducers = "0.4.55"
-julia = "1"
+julia = "1.6"
 
 [extras]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
