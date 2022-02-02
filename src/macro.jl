@@ -69,7 +69,7 @@ end
 Goto{label}(acc::T) where {label,T} = Goto{label,T}(acc)
 gotoexpr(label::Symbol) = :($Goto{$(QuoteNode(label))})
 
-function destructure_loop_pre_post(ex)
+function destructure_loop_pre_post(ex; multiple_loop_note = "")
     pre = post = Union{}[]
     ansvar = :_
     if isexpr(ex, :for)
@@ -83,7 +83,13 @@ function destructure_loop_pre_post(ex)
         pre = args[1:i-1]
         post = args[i+1:end]
         if find_first_for_loop(post) !== nothing
-            throw(ArgumentError("Multiple top-level `for` loop found in:\n$ex"))
+            msg = string(
+                "Multiple top-level `for` loops found.",
+                multiple_loop_note,
+                " Given expression:\n",
+                ex,
+            )
+            throw(ArgumentError(msg))
         end
     else
         throw(ArgumentError("Unsupported expression:\n$ex"))

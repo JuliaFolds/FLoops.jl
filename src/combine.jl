@@ -33,9 +33,104 @@ struct CombineOpSpec <: OpSpec
 end
 
 CombineOpSpec(args::Vector{Any}) = CombineOpSpec(args, Symbol[])
+macroname(::CombineOpSpec) = Symbol("@combine")
+
+# Without a macro like `@completebasecase`, it'd be confusing to have an
+# expression such as
+#
+#     @floop begin
+#         ...
+#         for x in xs
+#             ...  # executed in parallel loop body
+#         end
+#         for y in ys  # executed in completebasecase hook
+#             ...
+#         end
+#         ...
+#     end
+#
+# i.e., two similar loops have drastically different semantics.  The difference
+# can be clarified by using the syntax:
+#
+#     @floop begin
+#         ...
+#         for x in xs
+#             ...  # executed in parallel loop body
+#         end
+#         @completebasecase begin
+#             for y in ys  # executed in completebasecase hook
+#                 ...
+#             end
+#         end
+#         ...
+#     end
+"""
+    @completebasecase ex
+
+Evaluate expression `ex` at the end of each basecase. The expression `ex` can
+only refer to the variables declared by `@init`.
+
+`@completebasecase` can be omitted if `ex` does not contain a `for` loop.
+
+# Examples
+```jldoctest
+julia> using FLoops
+
+julia> pidigits = string(BigFloat(π; precision = 2^20))[3:end];
+
+julia> @floop begin
+           @init hist = zeros(Int, 10)
+           for c in pidigits
+               i = c - '0' + 1
+               hist[i] += 1
+           end
+           @completebasecase begin
+               j = 0
+               y = 0
+               for (i, x) in pairs(hist)  # pretending we don't have `argmax`
+                   if x > y
+                       j = i
+                       y = x
+                   end
+               end
+               peaks = [j]
+               nchunks = [sum(hist)]
+           end
+           @combine hist .+= _
+           @combine peaks = append!(_, _)
+           @combine nchunks = append!(_, _)
+       end
+```
+"""
+macro completebasecase(ex)
+    ex = Expr(:block, __source__, ex)
+    :(throw($(CompleteBasecaseOp(ex))))
+end
+
+struct CompleteBasecaseOp
+    ex::Expr
+end
+
+function extract_spec(ex)
+    @match ex begin
+        Expr(:call, throw′, spec::ReduceOpSpec) => spec
+        Expr(:call, throw′, spec::CombineOpSpec) => spec
+        Expr(:call, throw′, spec::InitSpec) => spec
+        Expr(:call, throw′, spec::CompleteBasecaseOp) => spec
+        _ => nothing
+    end
+end
+
+isa_spec(::Type{T}) where {T} = x -> extract_spec(x) isa T
 
 function combine_parallel_loop(ctx::MacroContext, ex::Expr, simd, executor = nothing)
-    iterspec, body, ansvar, pre, post = destructure_loop_pre_post(ex)
+    iterspec, body, ansvar, pre, post = destructure_loop_pre_post(
+        ex;
+        multiple_loop_note = string(
+            " Wrap the expressions after the first loop (parallel loop) with",
+            " `@completebasecase`.",
+        ),
+    )
     @assert ansvar == :_
 
     parallel_loop_ex = @match iterspec begin
@@ -50,15 +145,6 @@ function combine_parallel_loop(ctx::MacroContext, ex::Expr, simd, executor = not
     return parallel_loop_ex
 end
 
-function extract_spec(ex)
-    @match ex begin
-        Expr(:call, throw′, spec::ReduceOpSpec) => spec
-        Expr(:call, throw′, spec::CombineOpSpec) => spec
-        Expr(:call, throw′, spec::InitSpec) => spec
-        _ => nothing
-    end
-end
-
 function as_parallel_combine_loop(
     ctx::MacroContext,
     pre::Vector,
@@ -70,6 +156,7 @@ function as_parallel_combine_loop(
     executor,
 )
     @assert simd in (false, true, :ivdep)
+    foreach(disalow_raw_for_loop_without_completebasecase, post)
 
     init_exprs = []
     all_rf_accs = []
@@ -89,11 +176,27 @@ function as_parallel_combine_loop(
     # `next` reducing step function:
     base_accs = mapcat(identity, all_rf_accs)
 
-    firstcombine = something(
-        findfirst(x -> extract_spec(x) isa CombineOpSpec, post),
-        lastindex(post) + 1,
-    )
+    firstcombine = something(findfirst(isa_spec(CombineOpSpec), post), lastindex(post) + 1)
+
     completebasecase_exprs = post[firstindex(post):firstcombine-1]
+    if any(isa_spec(CompleteBasecaseOp), completebasecase_exprs)
+        # If `CompleteBasecaseOp` is used, this must be the only expression:
+        let exprs = [x for x in completebasecase_exprs if !(x isa LineNumberNode)],
+            spec = extract_spec(exprs[1])
+
+            if spec isa CompleteBasecaseOp && length(exprs) == 1
+                completebasecase_exprs = Any[spec.ex]
+            elseif all(isa_spec(CompleteBasecaseOp), exprs)
+                error("Only one `@completebasecase` can be used. got:\n", join(exprs, "\n"))
+            else
+                error(
+                    "`@completebasecase` cannot be mixed with other expressions.",
+                    " Put everything in `@completebasecase begin ... end`. got:\n",
+                    join(exprs, "\n"),
+                )
+            end
+        end
+    end
 
     left_accs = []
     right_accs = []
@@ -104,7 +207,8 @@ function as_parallel_combine_loop(
         spec = extract_spec(ex)
         if !(spec isa CombineOpSpec)
             error(
-                "non-`@combine` expressions must be placed between `for` loop and the first `@combine` expression: ",
+                "non-`@combine` expressions must be placed between `for` loop and the",
+                " first `@combine` expression: ",
                 spec,
             )
         end
@@ -278,4 +382,23 @@ function process_combine_op_spec(
     combine_body = :($lhs = $op($lhs, $rightarg))
     # TODO: use accurate line number from `@combine`
     return (; left = left, right = right, combine_body = combine_body)
+end
+
+function disalow_raw_for_loop_without_completebasecase(@nospecialize(ex))
+    ex isa Expr || return
+    extract_spec(ex) === nothing || return
+    _disalow_raw_for_loop(ex)
+end
+
+function _disalow_raw_for_loop(@nospecialize(ex))
+    ex isa Expr || return
+    if isexpr(ex, :for)
+        error(
+            "`@floop begin ... end` can only contain one `for` loop.",
+            " Use `@completebasecase begin ... end` to wrap the code after the parallel",
+            " loop, including the `for` loop. Got:\n",
+            ex,
+        )
+    end
+    foreach(_disalow_raw_for_loop, ex.args)
 end

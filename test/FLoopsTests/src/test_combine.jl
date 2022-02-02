@@ -5,6 +5,8 @@ using MicroCollections
 using StaticArrays
 using Test
 
+using ..Utils: @macroexpand_error
+
 function count_ints_two_pass(indices, ex = nothing)
     l, h = extrema(indices)
     n = h - l + 1
@@ -18,10 +20,28 @@ function count_ints_two_pass(indices, ex = nothing)
     return hist
 end
 
+valueof(::Val{x}) where {x} = x
+
+function count_ints_two_pass2(indices, ex = nothing)
+    l, h = extrema(indices)
+    n = Val(h - l + 1)
+    @floop ex begin
+        @init hist = zero(MVector{valueof(n),Int32})
+        for i in indices
+            hist[i-l+1] += 1
+        end
+        @completebasecase hist = SVector(hist)
+        @combine hist .+= _
+    end
+    return hist
+end
+
 function test_count_ints_two_pass()
     @testset "$(repr(ex))" for ex in [SequentialEx(), nothing, ThreadedEx(basesize = 1)]
         @test count_ints_two_pass(1:3, ex) == [1, 1, 1]
         @test count_ints_two_pass([1, 2, 4, 1], ex) == [2, 1, 0, 1]
+        @test count_ints_two_pass2(1:3, ex) == [1, 1, 1]
+        @test count_ints_two_pass2([1, 2, 4, 1], ex) == [2, 1, 0, 1]
     end
 end
 
@@ -92,6 +112,61 @@ function test_count_positive_ints()
         @test count_positive_ints(1:3; ex = ex) == [1, 1, 1]
         @test count_positive_ints([1, 2, 4, 1]; ex = ex) == [2, 1, 0, 1]
     end
+end
+
+function test_error_one_for_loop1()
+    err = @macroexpand_error @floop begin
+        @init a = nothing
+        for x in xs
+        end
+        for y in ys
+        end
+    end
+    @test err isa Exception
+    msg = sprint(showerror, err)
+    @test occursin("Wrap the expressions after the first loop", msg)
+end
+
+function test_error_one_for_loop2()
+    err = @macroexpand_error @floop begin
+        @init a = nothing
+        for x in xs
+        end
+        function f()
+            for y in ys
+            end
+        end
+    end
+    @test err isa Exception
+    msg = sprint(showerror, err)
+    @test occursin("can only contain one `for` loop", msg)
+end
+
+function test_error_mixing_plain_expr_and_completebasecase()
+    err = @macroexpand_error @floop begin
+        @init a = nothing
+        for x in xs
+        end
+        @completebasecase for y in ys
+        end
+        f(ys)
+    end
+    @test err isa Exception
+    msg = sprint(showerror, err)
+    @test occursin("cannot be mixed with other expressions", msg)
+end
+
+function test_error_two_completebasecase_macro_calls()
+    err = @macroexpand_error @floop begin
+        @init a = nothing
+        for x in xs
+        end
+        @completebasecase nothing
+        @completebasecase nothing
+    end
+    @test err isa Exception
+    msg = sprint(showerror, err)
+    @test occursin("Only one `@completebasecase` can be used", msg)
 end
 
 end  # module

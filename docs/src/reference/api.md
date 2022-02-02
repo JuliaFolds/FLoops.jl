@@ -24,6 +24,12 @@ FLoops.@combine
 FLoops.@init
 ```
 
+## `@completebasecase`
+
+```@docs
+FLoops.@completebasecase
+```
+
 ## [`SequentialEx`, `ThreadedEx` and `DistributedEx` executors](@id executor)
 
 An *executor* controls how a given `@floop` is executed. FLoops.jl re-exports

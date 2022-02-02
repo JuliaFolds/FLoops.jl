@@ -94,6 +94,7 @@ struct ReduceOpSpec <: OpSpec
 end
 
 ReduceOpSpec(args::Vector{Any}) = ReduceOpSpec(args, Symbol[])
+macroname(::ReduceOpSpec) = Symbol("@reduce")
 
 """
     @init begin
@@ -853,9 +854,6 @@ struct _FLoopInit end
 @inline _fold(rf::RF, coll, exc::Executor, simd) where {RF} = unreduced(
     transduce(IdentityTransducer(), rf, DefaultInit, coll, maybe_set_simd(exc, simd)),
 )
-
-macroname(::ReduceOpSpec) = Symbol("@reduce")
-macroname(::CombineOpSpec) = Symbol("@combine")
 
 function Base.print(io::IO, spec::OpSpec)
     # TODO: print as `do` block
