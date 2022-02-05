@@ -1,11 +1,11 @@
 """
-    @combine left ⊗= _
-    @combine left = _ ⊗ _
-    @combine left = op(_ , _)
-    @combine left .⊗= _
-    @combine left .= _ .⊗ _
-    @combine left .= op.(_, _)
-    @combine() do (left₁; right₁), ..., (leftₙ; rightₙ)
+    @combine acc ⊗= _
+    @combine acc = acc ⊗ _
+    @combine acc = op(acc, _)
+    @combine acc .⊗= _
+    @combine acc .= acc .⊗ _
+    @combine acc .= op.(acc, _)
+    @combine() do (acc₁; acc₁′), ..., (accₙ; accₙ′)
         ...
     end
 
@@ -97,8 +97,8 @@ julia> @floop begin
                nchunks = [sum(hist)]
            end
            @combine hist .+= _
-           @combine peaks = append!(_, _)
-           @combine nchunks = append!(_, _)
+           @combine peaks = append!(peaks, _)
+           @combine nchunks = append!(nchunks, _)
        end
 ```
 """
@@ -331,10 +331,11 @@ function process_combine_op_spec(
             op = rhs.args[1]
             l, r = rhs.args[2].args
         end
-        if !(l === r === :_)
+        if l === r === :_  # allowing :_ on both hand side; TODO: maybe not?
+        elseif !((l, r) == (lhs, :_) || (r, l) == (lhs, :_))
             error(
                 "`@combine lhs .= rhs` syntax expects that the arguments",
-                " of the rhs are `_`; got: ",
+                " of the rhs are lhs and `_`; got: ",
                 ex,
             )
         end
@@ -366,10 +367,11 @@ function process_combine_op_spec(
         # handle: @combine left = op(_, _)
         lhs, rhs = ex.args
         op, l, r = rhs.args
-        if !(l === r === :_)
+        if l === r === :_  # allowing :_ on both hand side; TODO: maybe not?
+        elseif !((l, r) == (lhs, :_) || (r, l) == (lhs, :_))
             error(
                 "`@combine lhs = rhs` syntax expects that the arguments",
-                " of the rhs are `_`; got: ",
+                " of the rhs are lhs and `_`; got: ",
                 ex,
             )
         end

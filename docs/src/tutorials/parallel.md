@@ -73,12 +73,14 @@ julia> using FLoops
 julia> pidigits = string(BigFloat(π; precision = 2^20))[3:end];
 
 julia> @floop begin
-           @init hist = zeros(Int, 10)
-           for char in pidigits
+           @init hist = zeros(Int, 10)  # (1) initialization
+           for char in pidigits         # (2) basecase
                n = char - '0'
                hist[n+1] += 1
            end
-           @combine hist .+= _  # combine two histograms
+           @combine hist .= hist .+ _   # (3) combine
+           # Or, use a short hand notation:
+           #     @combine hist .= _
        end
        hist
 10-element Vector{Int64}:
@@ -100,32 +102,99 @@ julia> @floop begin
     packages) support strings.  But this is of course not a very good format for
     playing with the digits of pi.
 
-We use syntax `@floop begin ... end` rather than `@floop for ... end` as the
-former has the room for placing `@combine` after the `for` loop.  The syntaxes
+_Conceptually_, this produces a program that acts like (but is more optimized
+than) the following code:
 
-    @combine acc ⊗= _
-    @combine acc = _ ⊗ _
+```julia
+# `chunks` is prepared such that:
+@assert pidigits == reduce(vcat, chunks)
+# i.e., pidigits == [chunks[1]; chunks[2]; ...; chunks[end]]
 
-specify that the reduction results are combined using the binary operator `⊗`
-(e.g., `⊗ = (a, b) -> a .+ b` in the above code).  Suppose that we have `acc₁`
-as the result of the reduction named `acc` for the first basecase and `acc₂` for
-the second basecase.  These results are combined using
+hists = Vector{Any}(undef, length(chunks))
+@sync for (i, pidigitsᵢ) in enumerate(chunks)
+    @spawn begin
+        local hist = zeros(Int, 10)   # (1) initialization
+        for char in pidigitsᵢ         # (2) basecase
+            n = char - '0'
+            hist[n+1] += 1
+        end
+        hists[i] = hist               # "sub-solution" of this basecase
+    end
+end
+hist = hists[1]
+for hist′ in hists[2:end]
+    hist .= hist .+ hist′             # (3) combine the sub-solutions
+end
+```
 
-    acc₁ ⊗ acc₂
+(1) The basecase-local accumulators are initialized using the [`@init`](@ref)
+statements.
 
-This result is combined with the other reduction results from the adjacent
-(combined) results using the function `⊗` until we have the single result
-corresponding to the reduction `acc` of entire iteration space.
+(2) Each basecase loop is executed with its own local accumulators.
 
-Note that initialization must be prefixed by `@init`.  This is for signifying
-that this initialization is local to the base case.  In particular, the
-initialization may (and typically does) happen multiple times since there are
-multiple basecases executed on different Julia tasks.
+(3) The sub-solutions `hists` are combined using the expression specified by
+`@combine`.  In the above pseudo code, given the expression `hist .= hist .+ _`
+(or equivalently `hist .+= _`), the symbol `hist` is substituted by the
+sub-solution `hist` of the first basecase and the symbol `_` is substituted by
+the sub-solution `hist` of the second basecase.  Evaluation of this expression
+produces a sub-solution `hist` combining the first and the second basecases.
+The sub-solution of the third basecase is combined into `hist` using a similar
+procedure.
 
-Only the variables specified by `@init` can be `@combine`d.  However, not all
-`@init`'ed variables have to be combined.  For example, `@init` can be used for
-allocating local buffer for intermediate computation.  See: [Local buffers using
-`@init`](@ref local-buffer).
+!!! warn
+    All three pieces of the above `@floop begin ... end` code (i.e., (1) `@init
+    ...`, (2) `for`-loop body, and (3) `@combine ...`) _may_ (and likely will)
+    be executed concurrently.  Thus, **they must be written in such a way that
+    concurrent execution in _arbitrary number_ of tasks is correct** (e.g., no
+    data race is possible).  In particular, the above pseudo code is inaccurate
+    in that it executes the `@combine` expression serially.  This is typically
+    not guaranteed by the [executor])(@ref tutorials-executor) provided by
+    JuliaFolds.
+
+!!! note
+    The combine steps of the above pseudo code is different from how most of the
+    executors in JuliaFolds execute FLoops.jl.  Typically, the combine steps are
+    executed in parallel; i.e., they use a more tree-like fashion to provide a
+    greater amount of
+    [_parallelism_](https://www.cprogramming.com/parallelism.html).
+
+Only the variables available "after" the `for` loop (but not the variables local
+to the loop body) can be used as the arguments to `@combine`.  Typically, it
+means the symbols specified by `@init`.  However, it is possible to introduce
+new variables for `@combine` by placing the code introducing new variables after
+the `for` loop (see [Executing code at the end of basecase](@ref
+simple-completebasecase)).  Note also that `@init`'ed variables do not have to
+be `@combine`d.  For example, `@init` can be used for allocating local buffer
+for intermediate computation (See: [Local buffers using `@init`](@ref
+local-buffer)).
+
+## Advanced: Understanding `@combine` in terms of `mapreduce`
+
+Alternatively, a more concise way to understand `@floop` and `@combine` is to
+conceptualized it as a lowering to a call to `mapreduce`:
+
+```julia
+function basecase(pidigitsᵢ)
+    local hist = zeros(Int, 10)   # (1) initialization
+    for char in pidigitsᵢ         # (2) basecase
+        n = char - '0'
+        hist[n+1] += 1
+    end
+    return hist
+end
+
+function combine!(hist, hist′)
+    hist .= hist .+ hist′         # (3) combine the sub-solutions
+    return hist
+end
+
+hist = mapreduce(basecase, combine!, chunks)
+```
+
+where `mapreduce` is a parallel implementation of `Base.mapreduce` (e.g.,
+`Folds.mapreduce`). Although this picture still does not reflect the actual
+internal of FLoops.jl (and Transducers.jl), this is a much more accurate mental
+model than the pseudo code above.
 
 ## Advanced: Unifying sequential and cross-basecase reductions
 
@@ -145,8 +214,8 @@ julia> @floop begin
                    push!(evens, x)
                end
            end
-           @combine odds = append!(_, _)
-           @combine evens = append!(_, _)
+           @combine odds = append!(odds, _)
+           @combine evens = append!(evens, _)
        end
        (odds, evens)
 ([1, 3, 5], [2, 4])
@@ -294,7 +363,7 @@ julia> @floop begin
 
     However, `@floop begin ... end` syntax is recommended.
 
-## Executing code at the end of basecase
+## [Executing code at the end of basecase](@id simple-completebasecase)
 
 On GPU, the reduction result must be an immutable value (and not contain
 GC-manged objects).  Thus, we can use `SVector` for a histogram with a small
