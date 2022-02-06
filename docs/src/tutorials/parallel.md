@@ -615,15 +615,23 @@ with parallel loops, provided that they are used outside the `@reduce` syntax:
 ```jldoctest
 julia> using FLoops
 
-julia> @floop for x in 1:10
-           y = 2x
-           @reduce() do (s; y)
-               s = y
+julia> function firstmatch(p, xs; ex = ThreadedEx())
+           @floop ex for ix in pairs(xs)
+               _i, x = ix
+               if p(x)
+                   @reduce() do (found = nothing; ix)
+                       found = ix
+                   end
+                   break
+               end
            end
-           x == 3 && break
-       end
-       s
-6
+           return found  # the *first* pair `i => x` s.t. `p(x)`
+       end;
+
+julia> firstmatch(==(42), 1:10)  # finds nothing
+
+julia> firstmatch(isodd, [0, 2, 1, 1, 1])
+3 => 1
 ```
 
 ## [Executors](@id tutorials-executor)
