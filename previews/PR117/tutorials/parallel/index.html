@@ -285,15 +285,23 @@ julia&gt; count_positive_ints([7, 5, 3, 3, 8, 6, 0, 6, 5, 2, 6, 6, 5, 0, 8, 3, 4
  1
  2</code></pre><h2 id="Control-flow-syntaxes"><a class="docs-heading-anchor" href="#Control-flow-syntaxes">Control flow syntaxes</a><a id="Control-flow-syntaxes-1"></a><a class="docs-heading-anchor-permalink" href="#Control-flow-syntaxes" title="Permalink"></a></h2><p>Control flow syntaxes such as <code>continue</code>, <code>break</code>, <code>return</code>, and <code>@goto</code> work with parallel loops, provided that they are used outside the <code>@reduce</code> syntax:</p><pre><code class="language-julia-repl hljs">julia&gt; using FLoops
 
-julia&gt; @floop for x in 1:10
-           y = 2x
-           @reduce() do (s; y)
-               s = y
+julia&gt; function firstmatch(p, xs; ex = ThreadedEx())
+           @floop ex for ix in pairs(xs)
+               _i, x = ix
+               if p(x)
+                   @reduce() do (found = nothing; ix)
+                       found = ix
+                   end
+                   break
+               end
            end
-           x == 3 &amp;&amp; break
-       end
-       s
-6</code></pre><h2 id="tutorials-executor"><a class="docs-heading-anchor" href="#tutorials-executor">Executors</a><a id="tutorials-executor-1"></a><a class="docs-heading-anchor-permalink" href="#tutorials-executor" title="Permalink"></a></h2><p><code>@floop</code> takes optional executor argument to specify an execution strategies and the parameters of the strategy:</p><pre><code class="language-julia-repl hljs">julia&gt; using FLoops
+           return found  # the *first* pair `i =&gt; x` s.t. `p(x)`
+       end;
+
+julia&gt; firstmatch(==(42), 1:10)  # finds nothing
+
+julia&gt; firstmatch(isodd, [0, 2, 1, 1, 1])
+3 =&gt; 1</code></pre><h2 id="tutorials-executor"><a class="docs-heading-anchor" href="#tutorials-executor">Executors</a><a id="tutorials-executor-1"></a><a class="docs-heading-anchor-permalink" href="#tutorials-executor" title="Permalink"></a></h2><p><code>@floop</code> takes optional executor argument to specify an execution strategies and the parameters of the strategy:</p><pre><code class="language-julia-repl hljs">julia&gt; using FLoops
 
 julia&gt; function demo(executor)
            @floop executor for x in 1:10
@@ -319,4 +327,4 @@ end</code></pre><p>or</p><pre><code class="language-julia hljs">@floop begin
         acc = op(acc, y)
     end
     @combine acc = op(acc, _)
-end</code></pre><p>However, as explained above, <code>@floop</code> supports various constructs that are not directly supported by <code>mapreduce</code>.  To fully cover the semantics of <code>@floop</code> in a functional manner, the extended reduction (&quot;fold&quot;) protocol of <a href="https://github.com/JuliaFolds/Transducers.jl">Transducers.jl</a> is required.  In fact, FLoops.jl is simply a syntax sugar for invoking the reductions defined in Transducers.jl.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../sequential/">« Sequential loops</a><a class="docs-footer-nextpage" href="../../howto/parallel/">How to do <em>X</em> in parallel? »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.12 on <span class="colophon-date" title="Sunday 6 February 2022 07:50">Sunday 6 February 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre><p>However, as explained above, <code>@floop</code> supports various constructs that are not directly supported by <code>mapreduce</code>.  To fully cover the semantics of <code>@floop</code> in a functional manner, the extended reduction (&quot;fold&quot;) protocol of <a href="https://github.com/JuliaFolds/Transducers.jl">Transducers.jl</a> is required.  In fact, FLoops.jl is simply a syntax sugar for invoking the reductions defined in Transducers.jl.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../sequential/">« Sequential loops</a><a class="docs-footer-nextpage" href="../../howto/parallel/">How to do <em>X</em> in parallel? »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.12 on <span class="colophon-date" title="Sunday 6 February 2022 08:05">Sunday 6 February 2022</span>. Using Julia version 1.6.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
