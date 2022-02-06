@@ -1,17 +1,21 @@
 # [Parallel loops](@id tutorials-parallel)
 
 `@floop` supports parallel loops not only for side-effect (as in
-`Threads.@threads`) but also for complex reductions using the optional
-`@combine` and `@reduce` syntax.
-
-!!! note
-
-    This tutorial can be read without reading the subsections with "Advanced:"
-    prefix.
+`Threads.@threads`) but also for complex reductions using the `@combine` and
+`@reduce` macros.
 
 If you already know how `mapreduce` works,  [Relation to `mapreduce`](@ref
 floop-and-mapreduce) may be the best first step for understanding the `@floop`
 syntax.
+
+```@contents
+Pages = ["parallel.md"]
+Depth = 3
+```
+
+!!! note
+    This tutorial can be read without reading the subsections with "Advanced:"
+    prefix.
 
 ## Independent execution
 
@@ -138,17 +142,40 @@ statements.
 sub-solution `hist` of the first basecase and the symbol `_` is substituted by
 the sub-solution `hist` of the second basecase.  Evaluation of this expression
 produces a sub-solution `hist` combining the first and the second basecases.
-The sub-solution of the third basecase is combined into `hist` using a similar
-procedure.
+The sub-solution of the third and later basecases are combined into `hist` using
+the same procedure.
 
-!!! warn
+In general, the expression
+
+```julia
+@combine acc = op(acc, _)
+```
+
+indicates that a sub-solution `acc` computed for a certain subset of the input
+collection (e.g., `pidigits` in the example) is combined with the sub-solution
+`acc_right` using
+
+```julia
+acc = op(acc, acc_right)
+```
+
+The binary function/operator `op` must be
+[associative](https://en.wikipedia.org/wiki/Associative_property).  However,
+`op` does not have to be side-effect-free.  In fact, if invoking in-place
+`op` on the sob-solutions does not cause thread safety issues, there is no
+problem in using in-place mutation.  For example, the above usage of `@combine
+hist .= hist .+ _` is correct because `hist` is created for each basecase; i.e.,
+no combine step can mutate the vector `hist` while other combine step tries to
+read from or write to the same vector.
+
+!!! warning
     All three pieces of the above `@floop begin ... end` code (i.e., (1) `@init
     ...`, (2) `for`-loop body, and (3) `@combine ...`) _may_ (and likely will)
     be executed concurrently.  Thus, **they must be written in such a way that
     concurrent execution in _arbitrary number_ of tasks is correct** (e.g., no
     data race is possible).  In particular, the above pseudo code is inaccurate
     in that it executes the `@combine` expression serially.  This is typically
-    not guaranteed by the [executor])(@ref tutorials-executor) provided by
+    not guaranteed by the [executor](@ref tutorials-executor) provided by
     JuliaFolds.
 
 !!! note
@@ -277,7 +304,7 @@ julia> let
 ([1, 3, 5], [2, 4])
 ```
 
-### Advanced: Handling unknown element types
+### Handling unknown element types
 
 In the above code, we assumed that we know the type of the elements that are
 accumulated into a vector.  However, when writing generic code, it is often
@@ -304,7 +331,7 @@ julia> @floop for x in 1:5
 ([1, 3, 5], [2, 4])
 ```
 
-### Advanced: Initialization with `@reduce(acc = init op x)` syntax
+### Initialization with `@reduce(acc = init op x)` syntax
 
 When `op` is a binary operator, the infix syntax `acc = init op x` can
 also be used:
@@ -430,8 +457,6 @@ julia> @floop for (i, v) in pairs([0, 1, 3, 2]), (j, w) in pairs([3, 1, 5])
 (5, 1, 3)
 ```
 
-### Advanced: How to read a loop with `@reduce() do` syntax
-
 When reading code with `@reduce() do`, a quick way to understand it is
 to mentally comment out the line with `@reduce() do` and the
 corresponding `end`.  To get a full picture, move the initialization
@@ -459,29 +484,55 @@ julia> let
 ```
 
 This exact transformation is used for defining the sequential
-basecase.  Consecutive basecases are combined using the code in the
-`do` block body.
+basecase.
 
-## Control flow syntaxes
+Consecutive basecases are combined using the code in the `do` block body.  That
+is to say, the accumulation result `acc = (dmax, imax, jmax)` from a basecase
+and the accumulation result `acc_right = (dmax, imax, jmax)` from then next
+basecase are combined using the following function
 
-Control flow syntaxes such as `continue`, `break`, `return`, and
-`@goto` work with parallel loops:
-
-```jldoctest
-julia> using FLoops
-
-julia> @floop for x in 1:10
-           y = 2x
-           @reduce() do (s; y)
-               s = y
-           end
-           x == 3 && break
-       end
-       s
-6
+```julia
+function combine(acc, acc_right)
+    (dmax, imax, jmax) = acc  # left variables are bound to left sub-solutions
+    (d, i, j) = acc_right     # right variables are bound to right sub-solutions
+    if isless(dmax, d)
+        dmax = d
+        imax = i
+        jmax = j
+    end
+    acc = (dmax, imax, jmax)
+    return acc
+end
 ```
 
-`@reduce` can be used multiple times in a loop body
+Note that variables left to `;` and the variables right to `;` in the original
+`@reduce() do` syntax are grouped into the left argument `acc` and the right
+argument `acc_right`, respectively.  This is why the `@reduce() do` syntax uses
+the nonstandard delimiter `;` for separating the arguments.  That is to say,
+`@reduce() do` syntax "transposes" (or "unzips") the arguments to clarify the
+correspondence of the left and the right arguments.  In general, the expression
+
+```julia
+@reduce() do (acc₁; x₁), (acc₂; x₂), ..., (accₙ; xₙ)
+    $expression_updates_accs
+end
+```
+
+generates the combine function
+
+```julia
+function combine((acc₁, acc₂, ..., accₙ), (x₁, x₂, ..., xₙ))
+    $expression_updates_accs
+    return (acc₁, acc₂, ..., accₙ)
+end
+```
+
+(Aside: This also clarifies why `@reduce() do` doesn't use the standard argument
+ordering `@reduce() do (acc₁, acc₂, ..., accₙ), (x₁, x₂, ..., xₙ)`.  From this
+expression, it is very hard to tell `accᵢ` corresponds to `xᵢ`.)
+
+Like other `@reduce` expressions, `@reduce() do` syntax can be used multiple
+times in a loop body:
 
 ```jldoctest
 julia> using FLoops
@@ -503,6 +554,76 @@ julia> @floop for (i, v) in pairs([0, 1, 3, 2])
        end
        (ymax, imax), (ymin, imin)
 ((6, 3), (0, 1))
+```
+
+Since the variables left to `;` (i.e., `ymax`, `imax`, `ymin`, and `imin` in the
+above example) are the "output" variables, they must be unique (otherwise, the
+computation result is not available outside the loop).  However, the variables
+right to `;` (i.e., `y` and `i` in the above example) do not have to be unique
+because multiple reductions can be computed using the same intermediate
+computation done in the loop body.
+
+Similar to `@reduce() do` syntax, there is `@combine() do` syntax.  This is
+useful when it is more straightforward to use different code for the basecase
+and combine steps.
+
+```jldoctest
+julia> using FLoops
+
+julia> function maybe_zero_extend_right!(hist, n)
+           l = length(hist)
+           if l < n
+               resize!(hist, n)
+               fill!(view(hist, l+1:n), 0)
+           end
+       end;
+
+julia> function count_positive_ints(ints, ex = ThreadedEx())
+           @floop ex begin
+               @init hist = Int[]
+               for n in ints
+                   n > 0 || continue  # filter out non-positive integers
+                   maybe_zero_extend_right!(hist, n)
+                   @inbounds hist[n] += 1
+               end
+               @combine() do (hist; other)
+                   n = length(other)
+                   maybe_zero_extend_right!(hist, n)
+                   @views hist[1:n] .+= other
+               end
+           end
+           return hist
+       end;
+
+julia> count_positive_ints([7, 5, 3, 3, 8, 6, 0, 6, 5, 2, 6, 6, 5, 0, 8, 3, 4, 2, 5, 2])
+8-element Vector{Int64}:
+ 0
+ 3
+ 3
+ 1
+ 4
+ 4
+ 1
+ 2
+```
+
+## Control flow syntaxes
+
+Control flow syntaxes such as `continue`, `break`, `return`, and `@goto` work
+with parallel loops, provided that they are used outside the `@reduce` syntax:
+
+```jldoctest
+julia> using FLoops
+
+julia> @floop for x in 1:10
+           y = 2x
+           @reduce() do (s; y)
+               s = y
+           end
+           x == 3 && break
+       end
+       s
+6
 ```
 
 ## [Executors](@id tutorials-executor)
@@ -564,7 +685,7 @@ or
         y = f(x)
         acc = op(acc, y)
     end
-    @combine acc = op(_, _)
+    @combine acc = op(acc, _)
 end
 ```
 
