@@ -392,13 +392,16 @@ julia> @floop begin
 
 ## [Executing code at the end of basecase](@id simple-completebasecase)
 
-On GPU, the reduction result must be an immutable value (and not contain
-GC-manged objects).  Thus, we can use `SVector` for a histogram with a small
-number of bins.  However, indexing update on `SVector` is very inefficient
-compared to `MVector`.  Thus, it is better to execute the basecase reduction
-using `MVector` while the cross-basecase reduction uses `SVector`.  This
-transformation be done by inserting the code after the `for` loop and before the
-`@combine` expression.
+On GPU, the reduction result must be an immutable value (and not contain any
+GC-manged objects).  This is often not a problem since Julia ecosystem has a
+rich set of tooling for programming with immutable values.  For example, we can
+use [`StaticArrays.SVector`](https://github.com/JuliaArrays/StaticArrays.jl) for
+a histogram with a small number of bins.  However, indexing update on `SVector`
+is very inefficient compared to `StaticArrays.MVector`.  Thus, it is better to
+execute the basecase reduction using `MVector` while the cross-basecase
+reduction uses `SVector`.  The transformation from `MVector` to `SVector` can be
+done by inserting the code after the `for` loop and before the `@combine`
+expression.
 
 ```jldoctest
 julia> using FLoops
