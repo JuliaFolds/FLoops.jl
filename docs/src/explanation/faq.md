@@ -1,6 +1,6 @@
 # Frequently asked questions
 
-## How to avoid boxing?](@id avoid-boxing)
+## [How to avoid boxing?](@id avoid-boxing)
 
 Moved to: [How to avoid boxing?](@ref avoid-box)
 
