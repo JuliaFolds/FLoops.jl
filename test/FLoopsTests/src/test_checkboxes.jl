@@ -82,7 +82,7 @@ function test_HasBoxedVariableError()
         msg = sprint(showerror, err)
         @test occursin("1 boxed variable:", msg)
         @test occursin(r"\b a \b"x, msg)
-        @test occursin("faq/#avoid-boxing", msg)
+        @test occursin("/howto/avoid-box/", msg)
     end
     @testset "two boxes" begin
         err = HasBoxedVariableError(_make_closure_with_two_boxes())
@@ -91,7 +91,7 @@ function test_HasBoxedVariableError()
         @test occursin("2 boxed variables:", msg)
         @test occursin(r"\b a \b"x, msg)
         @test occursin(r"\b b \b"x, msg)
-        @test occursin("faq/#avoid-boxing", msg)
+        @test occursin("/howto/avoid-box/", msg)
     end
 end
 

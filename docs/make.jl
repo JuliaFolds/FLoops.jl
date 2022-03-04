@@ -14,6 +14,7 @@ PAGES = [
     ],
     "How-to guides" => [
         # TODO: Finer grained pages?
+        "How to avoid `Box`" => "howto/avoid-box.md",
         "How to do _X_ in parallel?" => "howto/parallel.md",
     ],
     "Reference" => [
