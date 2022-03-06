@@ -137,7 +137,7 @@ function Base.showerror(io::IO, err::HasBoxedVariableError)
     print(io, "See: ")
     printstyled(
         io,
-        "https://juliafolds.github.io/FLoops.jl/dev/explanation/faq/#avoid-boxing";
+        "https://juliafolds.github.io/FLoops.jl/dev/howto/avoid-box/";
         color = :blue,
     )
 
