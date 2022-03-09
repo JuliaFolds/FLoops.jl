@@ -181,9 +181,9 @@ version = "2.13.0"
 
 [[LiterateTest]]
 deps = ["Test"]
-git-tree-sha1 = "f10e6f4d46da26a33e9cea7a5aed3476b592bbfb"
+git-tree-sha1 = "818dfe69a495ccc18d1f09e875921da13107378a"
 uuid = "d77d25b0-90d3-4a16-b10a-412a9d48f625"
-version = "0.1.4"
+version = "0.1.5"
 
 [[LoadAllPackages]]
 deps = ["Pkg"]
