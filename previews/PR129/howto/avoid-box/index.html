@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>How to avoid Box · FLoops</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><script src="../../../copy.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">FLoops</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">FLoops.jl</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorials/sequential/">Sequential loops</a></li><li><a class="tocitem" href="../../tutorials/parallel/">Parallel loops</a></li></ul></li><li><span class="tocitem">How-to guides</span><ul><li class="is-active"><a class="tocitem" href>How to avoid <code>Box</code></a><ul class="internal"><li><a class="tocitem" href="#leaked-variables"><span>&quot;Leaked variables&quot; ⇒ use <code>local</code></span></a></li><li><a class="tocitem" href="#uncertain-values"><span>&quot;Uncertain values&quot; ⇒ use <code>let</code></span></a></li><li><a class="tocitem" href="#not-really-a-data-race"><span>&quot;Not really a data race&quot; ⇒ use <code>Ref</code></span></a></li></ul></li><li><a class="tocitem" href="../parallel/">How to do <em>X</em> in parallel?</a></li></ul></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../../reference/api/">API</a></li><li><a class="tocitem" href="../../reference/syntax/">Syntax</a></li><li><a class="tocitem" href="../../reference/reduction/">Parallelizable reduction (WIP)</a></li></ul></li><li><span class="tocitem">Explanation</span><ul><li><a class="tocitem" href="../../explanation/faq/">FAQ</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">How-to guides</a></li><li class="is-active"><a href>How to avoid <code>Box</code></a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>How to avoid <code>Box</code></a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/JuliaFolds/FLoops.jl/blob/master/docs/src/howto/avoid-box.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="avoid-box"><a class="docs-heading-anchor" href="#avoid-box">How to avoid <code>Box</code>?</a><a id="avoid-box-1"></a><a class="docs-heading-anchor-permalink" href="#avoid-box" title="Permalink"></a></h1><p>FLoops.jl may complain about <code>HasBoxedVariableError</code>. For a quick prototyping, calling <a href="../../reference/api/#FLoops.assistant"><code>FLoops.assistant(false)</code></a> to disable the error/warning may be useful.  However, it is also easy to avoid this problem if you understand a few patterns as explained below:</p><ul><li><a href="#leaked-variables">&quot;Leaked variables&quot; ⇒ use <code>local</code></a></li><li><a href="#uncertain-values">&quot;Uncertain values&quot; ⇒ use <code>let</code></a></li><li><a href="#not-really-a-data-race">&quot;Not really a data race&quot; ⇒ use <code>Ref</code></a></li></ul><h2 id="leaked-variables"><a class="docs-heading-anchor" href="#leaked-variables">&quot;Leaked variables&quot; ⇒ use <code>local</code></a><a id="leaked-variables-1"></a><a class="docs-heading-anchor-permalink" href="#leaked-variables" title="Permalink"></a></h2><p><code>HasBoxedVariableError</code> can occur when &quot;leaked&quot; variables are causing data races.  Consider the following example:</p><pre><code class="language-julia hljs">function leaked_variable_example(xs)
+    a = xs[begin]
+    b = xs[end]
+    c = (a + b) / 2
+    @floop for x in xs
+        a = max(x, c)
+        @reduce s += a
+    end
+    return s
+end</code></pre><p>Calling this function causes <code>HasBoxedVariableError</code>:</p><pre><code class="language-julia-console hljs">julia&gt; FLoops.assistant(:error);
+
+julia&gt; leaked_variable_example(1:2)
+ERROR: HasBoxedVariableError: Closure ... has 1 boxed variable: a</code></pre><p>This occurs because the variable <code>a</code> is assigned before <code>@floop</code> by <code>a = xs[begin]</code> and inside <code>@floop</code> by <code>a = max(x, c)</code>.  However, since the assignment inside <code>@floop</code> can occur in parallel, this is a data race.  We can avoid this issue easily by making <code>a</code> local inside the loop:</p><pre><code class="language-julia hljs">function leaked_variable_example_fix1(xs)
+    a = xs[begin]
+    b = xs[end]
+    c = (a + b) / 2
+    @floop for x in xs
+        local a = max(x, c)   # note `local`
+        @reduce s += a
+    end
+    return s
+end</code></pre><p>Alternatively, we can use a different name:</p><pre><code class="language-julia hljs">function leaked_variable_example_fix2(xs)
+    a = xs[begin]
+    b = xs[end]
+    c = (a + b) / 2
+    @floop for x in xs
+        d = max(x, c)   # not `a`
+        @reduce s += d
+    end
+    return s
+end</code></pre><p>or limit the scope of <code>a</code> used for calculating <code>c</code>:</p><pre><code class="language-julia hljs">function leaked_variable_example_fix3(xs)
+    c = let a = xs[begin], b = xs[end]  # limit the scope of `a`
+        (a + b) / 2
+    end
+    @floop for x in xs
+        a = max(x, c)
+        @reduce s += a
+    end
+    return s
+end</code></pre><h2 id="uncertain-values"><a class="docs-heading-anchor" href="#uncertain-values">&quot;Uncertain values&quot; ⇒ use <code>let</code></a><a id="uncertain-values-1"></a><a class="docs-heading-anchor-permalink" href="#uncertain-values" title="Permalink"></a></h2><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>This is a known limitation as of Julia 1.8-DEV. This documentation may not be accurate in the future version of Julia. For more information, see: <a href="https://github.com/JuliaLang/julia/issues/15276">performance of captured variables in closures · Issue #15276 · JuliaLang/julia</a></p></div></div><p><code>HasBoxedVariableError</code> can also occur when Julia is uncertain about the value of some variables in the scope surrounding <code>@floop</code> (i.e., there are multiple binding locations).  For example:</p><pre><code class="language-julia hljs">function uncertain_value_example(xs; flag = false)
+    if flag
+        a = 0
+    else
+        a = 1
+    end
+    @floop for x in xs
+        x += a
+        @reduce s += x
+    end
+    return s
+end</code></pre><p>This can be fixed by using <code>let</code> to ensure that the variable <code>a</code> does not change while executing <code>@floop</code>. (Julia can be sure that the variable is not updated when it is assigned only once.)</p><pre><code class="language-julia hljs">function uncertain_value_example_fix(xs; flag = false)
+    if flag
+        a = 0
+    else
+        a = 1
+    end
+    let a = a  # &quot;quench&quot; the value of `a`
+        @floop for x in xs
+            x += a
+            @reduce s += x
+        end
+        return s
+    end
+end</code></pre><h2 id="not-really-a-data-race"><a class="docs-heading-anchor" href="#not-really-a-data-race">&quot;Not really a data race&quot; ⇒ use <code>Ref</code></a><a id="not-really-a-data-race-1"></a><a class="docs-heading-anchor-permalink" href="#not-really-a-data-race" title="Permalink"></a></h2><p>It is conceptually sound to assign to the variables in an outer scope of <code>@floop</code> if it is ensured that the race does not occur.  For example, in the following example, <code>found = i</code> can be executed at most once since the elements of <code>xs</code> are all distinct:</p><pre><code class="language-julia hljs">function non_data_race_example(xs::UnitRange; ex = nothing)
+    local found = nothing
+    @floop ex for (i, x) in pairs(xs)
+        if x == 1
+            found = i
+        end
+    end
+    return found
+end</code></pre><p>However, FLoops.jl also complains about <code>HasBoxedVariableError</code> when executing this function.  We can fix this by using <code>Ref</code>:</p><pre><code class="language-julia hljs">function non_data_race_example_fix(xs::UnitRange; ex = nothing)
+    found = Ref{Union{Int,Nothing}}(nothing)
+    @floop ex for (i, x) in pairs(xs)
+        if x == 1
+            found[] = i
+        end
+    end
+    return found[]
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../tutorials/parallel/">« Parallel loops</a><a class="docs-footer-nextpage" href="../parallel/">How to do <em>X</em> in parallel? »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.12 on <span class="colophon-date" title="Tuesday 24 May 2022 01:08">Tuesday 24 May 2022</span>. Using Julia version 1.6.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
