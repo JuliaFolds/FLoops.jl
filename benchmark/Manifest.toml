@@ -45,9 +45,9 @@ version = "1.3.1"
 
 [[BlockArrays]]
 deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra"]
-git-tree-sha1 = "18f1eda0090a516927c5bede54c1ea36b5bf13d5"
+git-tree-sha1 = "ef9b5e561eb814962541c0021eef2e30238d65ba"
 uuid = "8e7c35d0-a365-5155-bbbb-fb81a777f24e"
-version = "0.16.16"
+version = "0.16.17"
 
 [[Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
