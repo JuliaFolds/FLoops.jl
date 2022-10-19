@@ -763,7 +763,7 @@ function as_parallel_loop(ctx::MacroContext, rf_arg, coll, body0::Expr, simd, ex
     end
     check_invariance()
 
-    body2, info = transform_loop_body(body1, accs_symbols)
+    body2, info = transform_loop_body(localize(body1), accs_symbols)
 
     @gensym oninit_function reducing_function combine_function result context_function
     if ctx.module_ === Main
