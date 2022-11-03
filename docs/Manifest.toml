@@ -191,9 +191,9 @@ version = "0.1.0"
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [[MLStyle]]
-git-tree-sha1 = "0638598b2ea9c60303e036be920df8df60fe2812"
+git-tree-sha1 = "43f9be9c281179fe44205e2dc19f22e71e022d41"
 uuid = "d8e11817-5142-5d16-987a-aa16d5891078"
-version = "0.4.14"
+version = "0.4.15"
 
 [[MacroTools]]
 deps = ["Markdown", "Random"]
