@@ -13,6 +13,11 @@ function test(; skip = true)
             @info "Skipping doctests on Julia $VERSION."
             @test_skip nothing
             return
+        elseif VERSION ≥ v"1.8-"
+            # https://github.com/JuliaArrays/StaticArrays.jl/pull/989
+            @info "Skipping doctests on Julia $VERSION."
+            @test_skip nothing
+            return
         end
     end
     PerformanceTestTools.@include_foreach("__test_doctest.jl", [[]])

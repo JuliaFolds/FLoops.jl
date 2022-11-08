@@ -86,12 +86,15 @@ macro reduce(args...)
 end
 # TODO: detect free variables in `do` blocks
 
-struct ReduceOpSpec
+abstract type OpSpec end
+
+struct ReduceOpSpec <: OpSpec
     args::Vector{Any}
     visible::Vector{Symbol}
 end
 
 ReduceOpSpec(args::Vector{Any}) = ReduceOpSpec(args, Symbol[])
+macroname(::ReduceOpSpec) = Symbol("@reduce")
 
 """
     @init begin
@@ -852,13 +855,20 @@ struct _FLoopInit end
     transduce(IdentityTransducer(), rf, DefaultInit, coll, maybe_set_simd(exc, simd)),
 )
 
-function Base.showerror(io::IO, opspecs::ReduceOpSpec)
-    print(io, "`@reduce(")
-    join(io, opspecs.args, ", ")
-    print(io, ")` used outside `@floop`")
+function Base.print(io::IO, spec::OpSpec)
+    # TODO: print as `do` block
+    print(io, macroname(spec), "(")
+    join(io, spec.args, ", ")
+    print(io, ")")
+end
+
+Base.show(io::IO, ::MIME"text/plain", spec::OpSpec) = print(io, spec)
+
+function Base.showerror(io::IO, spec::OpSpec)
+    print(io, "`", spec, "` used outside `@floop`")
 end
 
 function Base.showerror(io::IO, spec::InitSpec)
     ex = spec.expr
-    print(io, "`@init", ex, "` used outside `@floop`")
+    print(io, "`@init ", ex, "` used outside `@floop`")
 end

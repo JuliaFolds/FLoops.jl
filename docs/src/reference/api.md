@@ -12,10 +12,22 @@ FLoops.@floop
 FLoops.@reduce
 ```
 
+## `@combine`
+
+```@docs
+FLoops.@combine
+```
+
 ## `@init`
 
 ```@docs
 FLoops.@init
+```
+
+## `@completebasecase`
+
+```@docs
+FLoops.@completebasecase
 ```
 
 ## [`SequentialEx`, `ThreadedEx` and `DistributedEx` executors](@id executor)

@@ -20,7 +20,16 @@ module FLoops
     doc
 end FLoops
 
-export @floop, @init, @reduce, DistributedEx, SequentialEx, ThreadedEx
+#! format: off
+export @floop,
+    @init,
+    @combine,
+    @reduce,
+    @completebasecase,
+    DistributedEx,
+    SequentialEx,
+    ThreadedEx
+#! format: on
 
 using BangBang.Extras: broadcast_inplace!!
 using BangBang: materialize!!, push!!
@@ -62,6 +71,7 @@ using Transducers:
     transduce,
     unreduced,
     whencombine,
+    whencompletebasecase,
     wheninit
 
 if isdefined(JuliaVariables, :solve!)
@@ -82,6 +92,7 @@ end
 include("utils.jl")
 include("macro.jl")
 include("reduce.jl")
+include("combine.jl")
 include("scratchspace.jl")
 include("checkboxes.jl")
 

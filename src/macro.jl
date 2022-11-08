@@ -41,6 +41,9 @@ macro floop(ex)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
     isexpr(exx, :for) && return esc(floop_parallel(ctx, exx, simd))
+    isexpr(exx, :block) &&
+        any(x -> extract_spec(x) isa Union{CombineOpSpec,InitSpec}, exx.args) &&
+        return esc(combine_parallel_loop(ctx, exx, simd))
     esc(floop(exx, simd))
 end
 
@@ -48,7 +51,11 @@ macro floop(executor, ex)
     ctx = MacroContext(__source__, __module__)
     ex, simd = remove_at_simd(__module__, ex)
     exx = macroexpand(__module__, ex)
-    esc(floop_parallel(ctx, exx, simd, executor))
+    if isexpr(ex, :for, 2)
+        esc(floop_parallel(ctx, exx, simd, executor))
+    else
+        esc(combine_parallel_loop(ctx, exx, simd, executor))
+    end
 end
 
 struct Return{T}
@@ -62,7 +69,7 @@ end
 Goto{label}(acc::T) where {label,T} = Goto{label,T}(acc)
 gotoexpr(label::Symbol) = :($Goto{$(QuoteNode(label))})
 
-function floop(ex, simd)
+function destructure_loop_pre_post(ex; multiple_loop_note = "")
     pre = post = Union{}[]
     ansvar = :_
     if isexpr(ex, :for)
@@ -76,7 +83,13 @@ function floop(ex, simd)
         pre = args[1:i-1]
         post = args[i+1:end]
         if find_first_for_loop(post) !== nothing
-            throw(ArgumentError("Multiple top-level `for` loop found in:\n$ex"))
+            msg = string(
+                "Multiple top-level `for` loops found.",
+                multiple_loop_note,
+                " Given expression:\n",
+                ex,
+            )
+            throw(ArgumentError(msg))
         end
     else
         throw(ArgumentError("Unsupported expression:\n$ex"))
@@ -84,6 +97,11 @@ function floop(ex, simd)
     if ansvar !== :_
         post = vcat(post, ansvar)
     end
+    return loops, body, ansvar, pre, post
+end
+
+function floop(ex, simd)
+    loops, body, ansvar, pre, post = destructure_loop_pre_post(ex)
     pre = vcat(pre, something(EXTRA_STATE_VARIABLES[], Union{}[]))
 
     init_vars = mapcat(assigned_vars, pre)
