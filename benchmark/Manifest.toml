@@ -13,9 +13,9 @@ version = "2.3.0"
 
 [[ArrayLayouts]]
 deps = ["FillArrays", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "1cbe50e27f4df02b8eba54f10a76888b606c47b2"
+git-tree-sha1 = "39a56ae18a139f93a544c2cefef048b3932f6e19"
 uuid = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
-version = "0.8.16"
+version = "0.8.17"
 
 [[BangBang]]
 deps = ["Compat", "ConstructionBase", "Future", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables", "ZygoteRules"]
