@@ -39,9 +39,9 @@ version = "1.3.2"
 
 [[BlockArrays]]
 deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra"]
-git-tree-sha1 = "ffb0191c5d1872a8c91a6181e94a365b7d08d5f2"
+git-tree-sha1 = "174b4970af15a500a29e76151f5c53195784b9d4"
 uuid = "8e7c35d0-a365-5155-bbbb-fb81a777f24e"
-version = "0.16.35"
+version = "0.16.36"
 
 [[Compat]]
 deps = ["Dates", "LinearAlgebra", "UUIDs"]
