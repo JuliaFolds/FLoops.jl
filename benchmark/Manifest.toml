@@ -13,9 +13,9 @@ version = "2.3.0"
 
 [[ArrayLayouts]]
 deps = ["FillArrays", "LinearAlgebra", "SparseArrays"]
-git-tree-sha1 = "f86b3bed71295314311c5628dc8d4a22c352e5f8"
+git-tree-sha1 = "e0da03c52673bc0ab5138d1381b4dbc48ea343b9"
 uuid = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
-version = "1.0.11"
+version = "1.0.12"
 
 [[BangBang]]
 deps = ["Compat", "ConstructionBase", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables"]
@@ -56,9 +56,9 @@ version = "0.1.2"
 
 [[ConstructionBase]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "738fec4d684a9a6ee9598a8bfee305b26831f28c"
+git-tree-sha1 = "fe2838a593b5f776e1597e086dcd47560d94e816"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.5.2"
+version = "1.5.3"
 
 [[ContextVariablesX]]
 deps = ["Compat", "Logging", "UUIDs"]
@@ -103,9 +103,9 @@ version = "0.1.1"
 
 [[FillArrays]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "Statistics"]
-git-tree-sha1 = "e5556303fd8c9ad4a8fceccd406ef3433ddb4c45"
+git-tree-sha1 = "192cee6de045c39e26f4ce4b7e0f00a9dae14dd1"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "1.4.0"
+version = "1.4.1"
 
 [[Future]]
 deps = ["Random"]
@@ -249,9 +249,9 @@ uuid = "171d559e-b47b-412a-8079-5efa626c420e"
 version = "0.1.15"
 
 [[StaticArraysCore]]
-git-tree-sha1 = "1d5708d926c76a505052d0d24a846d5da08bc3a4"
+git-tree-sha1 = "36b3d696ce6366023a0ea192b4cd442268995a0d"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
-version = "1.4.1"
+version = "1.4.2"
 
 [[Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
