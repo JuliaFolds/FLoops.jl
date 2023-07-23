@@ -231,9 +231,9 @@ version = "0.1.5"
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 
 [[OrderedCollections]]
-git-tree-sha1 = "1791b503101162477bf11e951caf6983e57cd8c2"
+git-tree-sha1 = "2e73fe17cac3c62ad1aebe70d44c963c3cfdc3e3"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
-version = "1.6.1"
+version = "1.6.2"
 
 [[Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
