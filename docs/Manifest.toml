@@ -12,9 +12,9 @@ version = "0.4.4"
 
 [[Adapt]]
 deps = ["LinearAlgebra", "Requires"]
-git-tree-sha1 = "cde29ddf7e5726c9fb511f340244ea3481267608"
+git-tree-sha1 = "f8c724a2066b2d37d0234fe4022ec67987022d00"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-version = "3.7.2"
+version = "4.0.0"
 
 [[ArgCheck]]
 git-tree-sha1 = "a3a402a35a2f7e0b87828ccabbd5ebfbebe356b4"
@@ -394,9 +394,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[Transducers]]
 deps = ["Adapt", "ArgCheck", "BangBang", "Baselet", "CompositionsBase", "ConstructionBase", "DefineSingletons", "Distributed", "InitialValues", "Logging", "Markdown", "MicroCollections", "Requires", "Setfield", "SplittablesBase", "Tables"]
-git-tree-sha1 = "e579d3c991938fecbb225699e8f611fa3fbf2141"
+git-tree-sha1 = "3064e780dbb8a9296ebb3af8f440f787bb5332af"
 uuid = "28d57a85-8fef-5791-bfe6-a80928e7c999"
-version = "0.4.79"
+version = "0.4.80"
 
 [[UUIDs]]
 deps = ["Random", "SHA"]
