@@ -17,6 +17,12 @@ git-tree-sha1 = "33207a8be6267bc389d0701e97a9bce6a4de68eb"
 uuid = "4c555306-a7a7-4459-81d9-ec55ddd5c99a"
 version = "1.9.2"
 
+[[BandedMatrices]]
+deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra", "PrecompileTools", "SparseArrays"]
+git-tree-sha1 = "30b7ea34abc4fe816eb1a5f434a43da804836163"
+uuid = "aae01518-5342-5314-be14-df237901396f"
+version = "1.7.0"
+
 [[BangBang]]
 deps = ["Compat", "ConstructionBase", "InitialValues", "LinearAlgebra", "Requires", "Setfield", "Tables"]
 git-tree-sha1 = "7aa7ad1682f3d5754e3491bb59b8103cae28e3a3"
@@ -38,10 +44,10 @@ uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 version = "1.5.0"
 
 [[BlockArrays]]
-deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra"]
-git-tree-sha1 = "9a9610fbe5779636f75229e423e367124034af41"
+deps = ["ArrayLayouts", "BandedMatrices", "FillArrays", "LinearAlgebra"]
+git-tree-sha1 = "7cc5d3c43c2f6d93b59742cb3af84461a45ae883"
 uuid = "8e7c35d0-a365-5155-bbbb-fb81a777f24e"
-version = "0.16.43"
+version = "1.0.0"
 
 [[Compat]]
 deps = ["Dates", "LinearAlgebra", "TOML", "UUIDs"]
