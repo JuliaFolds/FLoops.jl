@@ -12,9 +12,9 @@ version = "0.4.5"
 
 [[Adapt]]
 deps = ["LinearAlgebra", "Requires"]
-git-tree-sha1 = "cd8b948862abee8f3d3e9b73a102a9ca924debb0"
+git-tree-sha1 = "f7817e2e585aa6d924fd714df1e2a84be7896c60"
 uuid = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-version = "4.2.0"
+version = "4.3.0"
 
 [[ArgCheck]]
 git-tree-sha1 = "680b3b8759bd4c54052ada14e52355ab69e07876"
