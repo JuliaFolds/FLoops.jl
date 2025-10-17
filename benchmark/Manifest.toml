@@ -39,9 +39,9 @@ version = "0.1.1"
 
 [[BenchmarkTools]]
 deps = ["Compat", "JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "e38fbc49a620f5d0b660d7f543db1009fe0f8336"
+git-tree-sha1 = "b6d3a24de30951b196b84a83b5680f15fdc7d621"
 uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.6.0"
+version = "1.6.1"
 
 [[BlockArrays]]
 deps = ["ArrayLayouts", "BandedMatrices", "FillArrays", "LinearAlgebra"]
